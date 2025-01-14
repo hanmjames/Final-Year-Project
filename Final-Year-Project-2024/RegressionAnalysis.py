@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
 # Load the separate datasets for real GDP, potential GDP, inflation, and federal funds rate
-real_gdp = pd.read_csv(r"C:\Users\hanma\PycharmProjects\Final-Year-Project-2024\RealGDP_1981to1996.csv")
-pot_gdp = pd.read_csv(r"C:\Users\hanma\PycharmProjects\Final-Year-Project-2024\PotGDP_1981to1996.csv")
-inflation = pd.read_csv(r"C:\Users\hanma\PycharmProjects\Final-Year-Project-2024\Inflation_1981to1996.csv")
-fed_funds = pd.read_csv(r"C:\Users\hanma\PycharmProjects\Final-Year-Project-2024\Fedfunds_1981to1996.csv")
+real_gdp = pd.read_csv(r"C:\Users\hanma\Documents\GitHub\Final-Year-Project\Final-Year-Project-2024\RealGDP_1981to1996.csv")
+pot_gdp = pd.read_csv(r"C:\Users\hanma\Documents\GitHub\Final-Year-Project\Final-Year-Project-2024\PotGDP_1981to1996.csv")
+inflation = pd.read_csv(r"C:\Users\hanma\Documents\GitHub\Final-Year-Project\Final-Year-Project-2024\Inflation_1981to1996.csv")
+fed_funds = pd.read_csv(r"C:\Users\hanma\Documents\GitHub\Final-Year-Project\Final-Year-Project-2024\Fedfunds_1981to1996.csv")
+
 
 # Merge datasets on 'observation_date'
 merged_data = (
