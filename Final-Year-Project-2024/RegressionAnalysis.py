@@ -227,3 +227,52 @@ print(results_2002_with_lagged_all.summary)
 # save_summary(results_2002_without_lagged_all.summary, "IV Regression for 2002 Without Lagged FedFunds (All Quarters)", "iv_2002_without_lag_all.png")
 # save_summary(results_2002_with_lagged_q1.summary, "IV Regression for 2002 With Lagged FedFunds (First Quarter Only)", "iv_2002_with_lag_q1.png")
 # save_summary(results_2002_with_lagged_all.summary, "IV Regression for 2002 With Lagged FedFunds (All Quarters)", "iv_2002_with_lag_all.png")
+
+# Extracting first-stage results for 1997 Without Lagged FedFunds (First Quarter Only)
+print("First-Stage Results for 1997 Without Lagged FedFunds (First Quarter Only):")
+print(results_1997_without_lagged_q1.first_stage)
+
+# Extracting first-stage results for 1997 Without Lagged FedFunds (All Quarters)
+print("First-Stage Results for 1997 Without Lagged FedFunds (All Quarters):")
+print(results_1997_without_lagged_all.first_stage)
+
+# Extracting first-stage results for 1997 With Lagged FedFunds (First Quarter Only)
+print("First-Stage Results for 1997 With Lagged FedFunds (First Quarter Only):")
+print(results_1997_with_lagged_q1.first_stage)
+
+# Extracting first-stage results for 1997 With Lagged FedFunds (All Quarters)
+print("First-Stage Results for 1997 With Lagged FedFunds (All Quarters):")
+print(results_1997_with_lagged_all.first_stage)
+
+# Extracting first-stage results for 2002 Without Lagged FedFunds (First Quarter Only)
+print("First-Stage Results for 2002 Without Lagged FedFunds (First Quarter Only):")
+print(results_2002_without_lagged_q1.first_stage)
+
+# Extracting first-stage results for 2002 Without Lagged FedFunds (All Quarters)
+print("First-Stage Results for 2002 Without Lagged FedFunds (All Quarters):")
+print(results_2002_without_lagged_all.first_stage)
+
+# Extracting first-stage results for 2002 With Lagged FedFunds (First Quarter Only)
+print("First-Stage Results for 2002 With Lagged FedFunds (First Quarter Only):")
+print(results_2002_with_lagged_q1.first_stage)
+
+# Extracting first-stage results for 2002 With Lagged FedFunds (All Quarters)
+print("First-Stage Results for 2002 With Lagged FedFunds (All Quarters):")
+print(results_2002_with_lagged_all.first_stage)
+
+# save_summary(results_1997_without_lagged_q1.first_stage, "First-Stage Results for 1997 Without Lagged FedFunds (First Quarter Only)", "first_stage_1997_without_lag_q1.png")
+#
+# save_summary(results_1997_without_lagged_all.first_stage, "First-Stage Results for 1997 Without Lagged FedFunds (All Quarters)", "first_stage_1997_without_lag_all.png")
+#
+# save_summary(results_1997_with_lagged_q1.first_stage, "First-Stage Results for 1997 With Lagged FedFunds (First Quarter Only)", "first_stage_1997_with_lag_q1.png")
+#
+# save_summary(results_1997_with_lagged_all.first_stage, "First-Stage Results for 1997 With Lagged FedFunds (All Quarters)", "first_stage_1997_with_lag_all.png")
+#
+# save_summary(results_2002_without_lagged_q1.first_stage, "First-Stage Results for 2002 Without Lagged FedFunds (First Quarter Only)", "first_stage_2002_without_lag_q1.png")
+#
+# save_summary(results_2002_without_lagged_all.first_stage, "First-Stage Results for 2002 Without Lagged FedFunds (All Quarters)", "first_stage_2002_without_lag_all.png")
+#
+# save_summary(results_2002_with_lagged_q1.first_stage, "First-Stage Results for 2002 With Lagged FedFunds (First Quarter Only)", "first_stage_2002_with_lag_q1.png")
+#
+# save_summary(results_2002_with_lagged_all.first_stage, "First-Stage Results for 2002 With Lagged FedFunds (All Quarters)", "first_stage_2002_with_lag_all.png")
+
