@@ -605,3 +605,4 @@ metrics_df['Model Name'] = model_names
 # Displaying the DataFrame
 print(metrics_df)
 
+print(merged_data.columns)

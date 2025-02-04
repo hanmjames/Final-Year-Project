@@ -250,3 +250,5 @@ def save_df_as_image(df, filename="TestingResults2000-2006.png"):
 
 # Save the `model_comparison_results` DataFrame to an image
 save_df_as_image(model_comparison_results, "TestingResults2000-2006.png")
+
+print(merged_test_data.columns)
