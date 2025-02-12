@@ -17,7 +17,9 @@ from RegressionAnalysis import (
     results_1997_without_lagged_q1, results_1997_without_lagged_all,
     results_1997_with_lagged_q1, results_1997_with_lagged_all,
     results_2002_without_lagged_q1, results_2002_without_lagged_all,
-    results_2002_with_lagged_q1, results_2002_with_lagged_all
+    results_2002_with_lagged_q1, results_2002_with_lagged_all,
+
+    merged_data
 )
 
 fedFundsTest = pd.read_csv("FedfundsTest.csv")
@@ -195,6 +197,8 @@ def evaluate_models(test_data, ols_models, iv_models):
         exog_test = add_constant(test_data[exog_features])  # Exogenous variables
         endog_test = test_data[endog_features]  # Endogenous variables
         y_test = test_data["FEDFUNDS"]
+        print(exog_test.shape, endog_test.shape)
+        print("#########################################################################")
 
         # Predict using linearmodels' IV predict method
         y_pred = model.predict(exog=exog_test, endog=endog_test)  # Include endog_test
@@ -252,3 +256,5 @@ def save_df_as_image(df, filename="TestingResults2000-2006.png"):
 save_df_as_image(model_comparison_results, "TestingResults2000-2006.png")
 
 print(merged_test_data.columns)
+print(merged_data[['FEDFUNDS_19970107', 'FEDFUNDS_19970107', 'OutputGap_1997']].describe())
+print(merged_test_data[['FEDFUNDS', 'Inflation_Rate', 'OutputGap']].describe())

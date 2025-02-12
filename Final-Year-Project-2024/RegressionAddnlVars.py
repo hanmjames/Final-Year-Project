@@ -191,6 +191,8 @@ results_1997_without_lagged_q1 = iv_model_1997_q1.fit()
 print("IV Regression Results for 1997 Vintage Excl. Lagged FEDFUNDS (First Quarter Only):")
 print(results_1997_without_lagged_q1.summary)
 
+print(exog_1997_q1.shape, endog_1997_q1.shape)
+print("#########################################################################")
 # IV Regression for 1997 Without Lagged FedFunds (All Quarters)
 dependent_1997_all = merged_data["FEDFUNDS_19970107"]
 exog_1997_all = add_constant(merged_data[[]])  # Only the constant term remains
@@ -207,6 +209,8 @@ results_1997_without_lagged_all = iv_model_1997_all.fit()
 print("IV Regression Results for 1997 Vintage Excl. Lagged FEDFUNDS (All Quarters):")
 print(results_1997_without_lagged_all.summary)
 
+print(exog_1997_all.shape, endog_1997_all.shape)
+print("#########################################################################")
 # IV Regression for 1997 With Lagged FedFunds (First Quarter Only)
 dependent_1997_q1_lagged = merged_data_q1["FEDFUNDS_19970107"]
 exog_1997_q1_lagged = add_constant(merged_data_q1[["FedFunds_1997_Lag1"]])
@@ -230,6 +234,8 @@ results_1997_with_lagged_q1 = iv_model_1997_q1_lagged.fit()
 print("IV Regression Results for 1997 Vintage Incl. Lagged FEDFUNDS (First Quarter Only):")
 print(results_1997_with_lagged_q1.summary)
 
+print(exog_1997_q1_lagged.shape, endog_1997_q1_lagged.shape)
+print("#########################################################################")
 # IV Regression for 1997 With Lagged FedFunds (All Quarters)
 dependent_1997_all_lagged = merged_data["FEDFUNDS_19970107"]
 exog_1997_all_lagged = add_constant(merged_data[["FedFunds_1997_Lag1"]])
@@ -246,6 +252,9 @@ results_1997_with_lagged_all = iv_model_1997_all_lagged.fit()
 print("IV Regression Results for 1997 Vintage Incl. Lagged FEDFUNDS (All Quarters):")
 print(results_1997_with_lagged_all.summary)
 
+
+print(exog_1997_q1_lagged.shape, endog_1997_q1_lagged.shape)
+print("#########################################################################")
 # IV Regression for 2002 Without Lagged FedFunds (First Quarter Only)
 dependent_2002_q1 = merged_data_q1["FEDFUNDS_20020108"]
 exog_2002_q1 = add_constant(merged_data_q1[[]])  # Only the constant term remains
@@ -262,6 +271,8 @@ results_2002_without_lagged_q1 = iv_model_2002_q1.fit()
 print("IV Regression Results for 2002 Vintage Excl. Lagged FEDFUNDS (First Quarter Only):")
 print(results_2002_without_lagged_q1.summary)
 
+print(exog_2002_q1.shape, endog_2002_q1.shape)
+print("#########################################################################")
 # IV Regression for 2002 Without Lagged FedFunds (All Quarters)
 dependent_2002_all = merged_data["FEDFUNDS_20020108"]
 exog_2002_all = add_constant(merged_data[[]])  # Only the constant term remains
@@ -278,6 +289,9 @@ results_2002_without_lagged_all = iv_model_2002_all.fit()
 print("IV Regression Results for 2002 Vintage Excl. Lagged FEDFUNDS (All Quarters):")
 print(results_2002_without_lagged_all.summary)
 
+
+print(exog_2002_all.shape, endog_2002_all.shape)
+print("#########################################################################")
 # IV Regression for 2002 With Lagged FedFunds (First Quarter Only)
 dependent_2002_q1_lagged = merged_data_q1["FEDFUNDS_20020108"]
 exog_2002_q1_lagged = add_constant(merged_data_q1[["FedFunds_2002_Lag1"]])
@@ -301,6 +315,8 @@ results_2002_with_lagged_q1 = iv_model_2002_q1_lagged.fit()
 print("IV Regression Results for 2002 Vintage Incl. Lagged FEDFUNDS (First Quarter Only):")
 print(results_2002_with_lagged_q1.summary)
 
+print(exog_2002_q1_lagged.shape, endog_2002_q1_lagged.shape)
+print("#########################################################################")
 # IV Regression for 2002 With Lagged FedFunds (All Quarters)
 dependent_2002_all_lagged = merged_data["FEDFUNDS_20020108"]
 exog_2002_all_lagged = add_constant(merged_data[["FedFunds_2002_Lag1"]])
@@ -317,6 +333,9 @@ results_2002_with_lagged_all = iv_model_2002_all_lagged.fit()
 print("IV Regression Results for 2002 Vintage Incl. Lagged FEDFUNDS (All Quarters):")
 print(results_2002_with_lagged_all.summary)
 
+
+print(exog_2002_all_lagged.shape, endog_2002_all_lagged.shape)
+print("#########################################################################")
 
 #Save summaries as images
 save_summary(results_1997_without_lagged_q1.summary, "Adding 3 New Vars: IV Regression for 1997 Without Lagged FedFunds (First Quarter Only)", "iv_1997_without_lag_q1_3vars.png")
@@ -686,6 +705,7 @@ iv_models = [
 
 all_metrics = []
 
+
 # Process OLS models
 for model, X_train, y_train, X_test, y_test, model_name in ols_models:
     all_metrics.append(calculate_metrics(model, X_train, y_train, X_test, y_test, model_name))
@@ -699,3 +719,5 @@ metrics_df = pd.DataFrame(all_metrics)
 
 # Displaying the DataFrame
 print(metrics_df)
+
+print(merged_data.columns)
