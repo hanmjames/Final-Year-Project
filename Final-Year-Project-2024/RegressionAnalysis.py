@@ -607,4 +607,40 @@ metrics_df['Model Name'] = model_names
 # Displaying the DataFrame
 print(metrics_df)
 
-print(merged_data.columns)
+OLSpred1997WithoutLagQ1 = ols_1997_without_lag_q1.predict(X_1997_q1)
+OLSpred1997WithoutLagAll = ols_1997_without_lag_all.predict(X_1997_all)
+OLSpred1997WithLagQ1 = ols_1997_with_lag_q1.predict(X_1997_q1_lagged)
+OLSpred1997WithLagAll = ols_1997_with_lag_all.predict(X_1997_all_lagged)
+OLSpred2002WithoutLagQ1 = ols_2002_without_lag_q1.predict(X_2002_q1)
+OLSpred2002WithoutLagAll = ols_2002_without_lag_all.predict(X_2002_all)
+OLSpred2002WithLagQ1 = ols_2002_with_lag_q1.predict(X_2002_q1_lagged)
+OLSpred2002WithLagAll = ols_2002_with_lag_all.predict(X_2002_all_lagged)
+
+IVpred1997WithoutLagQ1 = results_1997_without_lagged_q1.predict(exog=exog_1997_q1, endog=endog_1997_q1)
+IVpred1997WithoutLagAll = results_1997_without_lagged_all.predict(exog=exog_1997_all, endog=endog_1997_all)
+IVpred1997WithLagQ1 = results_1997_with_lagged_q1.predict(exog=exog_1997_q1_lagged, endog=endog_1997_q1_lagged)
+IVpred1997WithLagAll = results_1997_with_lagged_all.predict(exog=exog_1997_all_lagged, endog=endog_1997_all_lagged)
+IVpred2002WithoutLagQ1 = results_2002_without_lagged_q1.predict(exog=exog_2002_q1, endog=endog_2002_q1)
+IVpred2002WithoutLagAll = results_2002_without_lagged_all.predict(exog=exog_2002_all, endog=endog_2002_all)
+IVpred2002WithLagQ1 = results_2002_with_lagged_q1.predict(exog=exog_2002_q1_lagged, endog=endog_2002_q1_lagged)
+IVpred2002WithLagAll = results_2002_with_lagged_all.predict(exog=exog_2002_all_lagged, endog=endog_2002_all_lagged)
+
+
+
+plt.plot(figsize = (10, 6))
+plt.plot(merged_data['observation_date'], merged_data['FEDFUNDS_19970107'], label = "Actual FedFunds Values (1997)", alpha = 0.6, color = "pink")
+plt.plot(merged_data['observation_date'], IVpred1997WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (IV)", alpha = 0.6,color = "purple")
+plt.plot(merged_data['observation_date'], OLSpred1997WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (OLS)", alpha = 0.6,color = "red")
+plt.plot(merged_data['observation_date'], IVpred1997WithLagAll, label = "Pred Vals Incl Lagged FedFunds (IV)", alpha = 0.6,color = "blue")
+plt.plot(merged_data['observation_date'], OLSpred1997WithLagAll, label = "Pred Vals Incl Lagged FedFunds (OLS)", alpha = 0.6,color = "orange")
+plt.title("Actual vs. Pred FedFunds Values (1997)")
+plt.show()
+
+plt.plot(figsize = (10, 6))
+plt.plot(merged_data['observation_date'], merged_data['FEDFUNDS_20020108'], label = "Actual FedFunds Values (2002)", alpha = 0.6, color = "pink")
+plt.plot(merged_data['observation_date'], IVpred2002WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (IV)", alpha = 0.6,color = "purple")
+plt.plot(merged_data['observation_date'], OLSpred2002WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (OLS)", alpha = 0.6,color = "red")
+plt.plot(merged_data['observation_date'], IVpred2002WithLagAll, label = "Pred Vals Incl Lagged FedFunds (IV)", alpha = 0.6,color = "blue")
+plt.plot(merged_data['observation_date'], OLSpred2002WithLagAll, label = "Pred Vals Incl Lagged FedFunds (OLS)", alpha = 0.6,color = "orange")
+plt.title("Actual vs. Pred FedFunds Values (2002)")
+plt.show()

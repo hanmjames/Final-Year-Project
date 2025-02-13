@@ -264,6 +264,8 @@ iv_models = [
 # for i, model_tuple in enumerate(iv_models):
 #     print(f"Model {i}: {len(model_tuple)} elements")
 
+predictions = {}
+
 def evaluate_models(test_data, ols_models, iv_models):
     """
     Evaluate OLS and IV models on the given test dataset.
@@ -308,6 +310,8 @@ def evaluate_models(test_data, ols_models, iv_models):
             "MSE/Mean": mse_mean_ratio
         })
 
+        predictions[model_name] = y_pred
+
     # Evaluate IV Models
     for model, model_name, exog_features, endog_features, instruments in iv_models:
         print(f"Evaluating IV model: {model_name}")
@@ -337,6 +341,7 @@ def evaluate_models(test_data, ols_models, iv_models):
             "MSE/Variance": mse / variance,
             "MSE/Mean": mse_mean_ratio
         })
+        predictions[model_name] = y_pred
 
     # Convert results to DataFrame
     return pd.DataFrame(evaluation_results)
@@ -376,3 +381,23 @@ print(model_comparison_results)
 
 # print(merged_data[['FEDFUNDS_19970107', 'FEDFUNDS_19970107', 'OutputGap_1997']].describe())
 # print(merged_test_data[['FEDFUNDS', 'Inflation_Rate', 'OutputGap']].describe())
+
+plt.figure(figsize=(10, 6))
+plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
+plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2000-2006 [Only Houses]")
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(10, 6))
+plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
+plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2000-2006 [Only Houses]")
+plt.legend()
+plt.show()

@@ -1,6 +1,7 @@
 from datetime import datetime
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
 from statsmodels.api import OLS, add_constant
 pd.set_option('display.max_columns', None)
 
@@ -46,3 +47,17 @@ x3 = mergedDataset[['InflationRate', 'OutputGap', 'PresidentParty', 'InflationIn
 x3 = add_constant(x3)
 politicalOLS3 = OLS(y3, x3).fit()
 print(politicalOLS3.summary())
+
+pred1 = politicalOLS.predict(x)
+pred2 = politicalOLS2.predict(x2)
+pred3 = politicalOLS3.predict(x3)
+actual = mergedDataset['FEDFUNDS']
+
+plt.figure(figsize=(10, 6))
+plt.plot(mergedDataset['observation_date'], actual, label = "Actual FedFunds Values", color = "pink")
+plt.plot(mergedDataset["observation_date"], pred1, label = "All Political Variables", color = "red")
+plt.plot(mergedDataset["observation_date"], pred2, label = "Only Ruling Party Variable", color = "blue")
+plt.plot(mergedDataset["observation_date"], pred3, label = "Ruling Party and 2 Interaction Variables", color = "purple")
+
+
+plt.show()
