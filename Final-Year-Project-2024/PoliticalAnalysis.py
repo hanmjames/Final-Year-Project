@@ -4,14 +4,18 @@ import numpy as np
 from matplotlib import pyplot as plt
 from statsmodels.api import OLS, add_constant
 pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
 fedfundsData = pd.read_csv("FedfundsTotal.csv")
 inflationData = pd.read_csv("InflationTotal.csv")
 realGDPData = pd.read_csv("RealGDPTotal.csv")
 potGDPData = pd.read_csv("PotentialGDPTotal.csv")
+#Dem = 0, Rep = 1
 partyData = pd.read_csv("PartyTotal.csv")
+#Dem = 1, Rep = 0
+partyRevData = pd.read_csv("partyTotalReversed.csv")
 
-mergedDataset = (fedfundsData.merge(inflationData, on='observation_date').merge(realGDPData, on='observation_date').merge(potGDPData, on='observation_date').merge(partyData, on='observation_date'))
+mergedDataset = (fedfundsData.merge(inflationData, on='observation_date').merge(realGDPData, on='observation_date').merge(potGDPData, on='observation_date').merge(partyData, on='observation_date').merge(partyRevData, on='observation_date'))
 
 mergedDataset['observation_date'] = pd.to_datetime(mergedDataset['observation_date'])
 mergedDataset['observation_date'] = mergedDataset['observation_date'].dt.strftime('%Y-%d-%m')
@@ -21,6 +25,8 @@ mergedDataset['OutputGap'] = 100 * (np.log(mergedDataset['GDPC1']) - np.log(merg
 mergedDataset['FedFundsLag1'] = mergedDataset['FEDFUNDS'].shift(1)
 mergedDataset['InflationInteraction'] = mergedDataset['InflationRate'] * mergedDataset['PresidentParty']
 mergedDataset['OutputGapInteraction'] = mergedDataset['OutputGap'] * mergedDataset['PresidentParty']
+mergedDataset['InflationInteractionRev'] = mergedDataset['InflationRate'] * mergedDataset['PresidentPartyRev']
+mergedDataset['OutputGapInteractionRev'] = mergedDataset['OutputGap'] * mergedDataset['PresidentPartyRev']
 
 mergedDataset.drop(columns=['GDPDEF', 'GDPPOT', 'GDPC1'], inplace=True)
 mergedDataset.dropna(inplace=True)
@@ -48,6 +54,12 @@ x3 = add_constant(x3)
 politicalOLS3 = OLS(y3, x3).fit()
 print(politicalOLS3.summary())
 
+yRev= mergedDataset['FEDFUNDS']
+xRev = mergedDataset[['InflationRate', 'OutputGap', 'PresidentPartyRev', 'InflationInteractionRev', 'OutputGapInteractionRev', 'FedFundsLag1']]
+xRev = add_constant(xRev)
+politicalOLSRev = OLS(yRev, xRev).fit()
+print(politicalOLSRev.summary())
+
 pred1 = politicalOLS.predict(x)
 pred2 = politicalOLS2.predict(x2)
 pred3 = politicalOLS3.predict(x3)
@@ -60,4 +72,4 @@ plt.plot(mergedDataset["observation_date"], pred2, label = "Only Ruling Party Va
 plt.plot(mergedDataset["observation_date"], pred3, label = "Ruling Party and 2 Interaction Variables", color = "purple")
 
 
-plt.show()
+# plt.show()
