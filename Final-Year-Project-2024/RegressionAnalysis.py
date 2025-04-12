@@ -3,6 +3,7 @@ import numpy as np
 from statsmodels.api import OLS, add_constant
 from linearmodels.iv import IV2SLS
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 # Set pandas display option to show all columns
 pd.set_option('display.max_columns', None)
@@ -53,6 +54,29 @@ merged_data = merged_data[(merged_data['observation_date'] >= '1981-01-01') & (m
 
 # Ensure 'observation_date' is retained in the merged data
 merged_data.reset_index(drop=True, inplace=True)
+
+# Define columns to standardize
+standardizeCols = [
+    # 1997
+    "FEDFUNDS_19970107", "Inflation_Rate_1997", "OutputGap_1997",
+    "FedFunds_1997_Lag1", "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+    "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+
+    # 2002
+    "FEDFUNDS_20020108", "Inflation_Rate_2002", "OutputGap_2002",
+    "FedFunds_2002_Lag1", "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+    "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3"
+]
+
+# Drop rows with NaNs in any of these columns
+merged_data.dropna(subset=standardizeCols, inplace=True)
+merged_data_q1 = merged_data[merged_data['observation_date'].dt.strftime('%m-%d') == '01-01'].copy()
+
+# Initialize and fit the scaler
+scaler = StandardScaler()
+merged_data[standardizeCols] = scaler.fit_transform(merged_data[standardizeCols])
+merged_data_q1[standardizeCols] = scaler.transform(merged_data_q1[standardizeCols])
+
 
 # Display the updated merged data with output gaps and inflation rate
 print("Merged Data (After Adding Output Gaps, Annualized Inflation Rate, and Lags):")
@@ -413,234 +437,135 @@ train_data_q1, test_data_q1 = train_test_split(merged_data_q1, test_size=0.2, ra
 # Splitting merged_data into training and testing sets for all-quarter models
 train_data, test_data = train_test_split(merged_data, test_size=0.2, random_state=42)
 
-def calculate_metrics_iv(model, X_train_exog, X_train_endog, y_train, X_test_exog, X_test_endog, y_test, model_name):
-    X_train_exog = add_constant(X_train_exog) if "const" in model.params.index else X_train_exog
-    X_test_exog = add_constant(X_test_exog) if "const" in model.params.index else X_test_exog
+standardize_cols = [
+    "Inflation_Rate_1997", "OutputGap_1997", "FedFunds_1997_Lag1",
+    "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+    "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+    "Inflation_Rate_2002", "OutputGap_2002", "FedFunds_2002_Lag1",
+    "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+    "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3"
+]
 
-    # In-sample predictions
-    y_train_pred = model.predict(exog=X_train_exog, endog=X_train_endog)
-    # Out-of-sample predictions
-    y_test_pred = model.predict(exog=X_test_exog, endog=X_test_endog)
+# Standardize training data
+scaler = StandardScaler()
+train_data[standardize_cols] = scaler.fit_transform(train_data[standardize_cols])
+test_data[standardize_cols] = scaler.transform(test_data[standardize_cols])
+train_data_q1[standardize_cols] = scaler.fit_transform(train_data_q1[standardize_cols])
+test_data_q1[standardize_cols] = scaler.transform(test_data_q1[standardize_cols])
 
-    # Metrics
+# Redefine models using only train_data and evaluate on test_data
+def run_ols(xTrain, yTrain, xTest, yTest):
+    xTrain = add_constant(xTrain)
+    xTest = add_constant(xTest)
+    model = OLS(yTrain, xTrain).fit()
+    yTrainPred = model.predict(xTrain)
+    yTestPred = model.predict(xTest)
     metrics = {
-        "Model": model_name,
-        "In-sample R-squared": model.rsquared,
-        "In-sample RMSE": np.sqrt(mean_squared_error(y_train, y_train_pred)),
-        "In-sample MAE": mean_absolute_error(y_train, y_train_pred),
-        "Out-of-sample RMSE": np.sqrt(mean_squared_error(y_test, y_test_pred)),
-        "Out-of-sample MAE": mean_absolute_error(y_test, y_test_pred)
+        "R-squared": model.rsquared,
+        "Adj. R-squared": model.rsquared_adj,
+        "F-statistic": model.fvalue,
+        "P-value (F-stat)": model.f_pvalue,
+        "AIC": model.aic,
+        "BIC": model.bic,
+        "Durbin-Watson": sm.stats.durbin_watson(model.resid),
+        "In-sample RMSE": np.sqrt(mean_squared_error(yTrain, yTrainPred)),
+        "In-sample MAE": mean_absolute_error(yTrain, yTrainPred),
+        "Out-of-sample RMSE": np.sqrt(mean_squared_error(yTest, yTestPred)),
+        "Out-of-sample MAE": mean_absolute_error(yTest, yTestPred)
     }
-    return metrics
+    return pd.DataFrame([metrics])
 
-
-# Function to calculate metrics for in-sample and out-of-sample testing
-def calculate_metrics(model, X_train, y_train, X_test, y_test, model_name):
-    X_train = add_constant(X_train) if "const" in model.params.index else X_train
-    X_test = add_constant(X_test) if "const" in model.params.index else X_test
-
-    # In-sample predictions
-    y_train_pred = model.predict(X_train)
-    # Out-of-sample predictions
-    y_test_pred = model.predict(X_test)
-
-    # Metrics
+def run_iv(model, xTrainExog, xTrainEndog, yTrain, xTestExog, xTestEndog, yTest):
+    xTrainExog = add_constant(xTrainExog) if "const" in model.params.index else xTrainExog
+    xTestExog = add_constant(xTestExog) if "const" in model.params.index else xTestExog
+    yTrainPred = model.predict(exog=xTrainExog, endog=xTrainEndog)
+    yTestPred = model.predict(exog=xTestExog, endog=xTestEndog)
     metrics = {
-        "Model": model_name,
-        "In-sample R-squared": model.rsquared,
-        "In-sample RMSE": np.sqrt(mean_squared_error(y_train, y_train_pred)),
-        "In-sample MAE": mean_absolute_error(y_train, y_train_pred),
-        "Out-of-sample RMSE": np.sqrt(mean_squared_error(y_test, y_test_pred)),
-        "Out-of-sample MAE": mean_absolute_error(y_test, y_test_pred)
+        "R-squared": model.rsquared,
+        "F-statistic": model.f_statistic.stat,
+        "P-value (F-stat)": model.f_statistic.pval,
+        "Sargan Stat": model.sargan.stat if model.sargan is not None else "N/A",
+        "Sargan P-value": model.sargan.pval if model.sargan is not None else "N/A",
+        "In-sample RMSE": np.sqrt(mean_squared_error(yTrain, yTrainPred)),
+        "In-sample MAE": mean_absolute_error(yTrain, yTrainPred),
+        "Out-of-sample RMSE": np.sqrt(mean_squared_error(yTest, yTestPred)),
+        "Out-of-sample MAE": mean_absolute_error(yTest, yTestPred)
     }
-    return metrics
+    return pd.DataFrame([metrics])
 
-# OLS Models
-ols_models = [
-    (ols_1997_without_lag_q1, train_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]], train_data_q1["FEDFUNDS_19970107"], test_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]], test_data_q1["FEDFUNDS_19970107"], "OLS 1997 Without Lagged FEDFUNDS (Q1)"),
-    (ols_1997_without_lag_all, train_data[["Inflation_Rate_1997", "OutputGap_1997"]], train_data["FEDFUNDS_19970107"], test_data[["Inflation_Rate_1997", "OutputGap_1997"]], test_data["FEDFUNDS_19970107"], "OLS 1997 Without Lagged FEDFUNDS (All Quarters)"),
-    (ols_1997_with_lag_q1, train_data_q1[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], train_data_q1["FEDFUNDS_19970107"], test_data_q1[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], test_data_q1["FEDFUNDS_19970107"], "OLS 1997 With Lagged FEDFUNDS (Q1)"),
-    (ols_1997_with_lag_all, train_data[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], train_data["FEDFUNDS_19970107"], test_data[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], test_data["FEDFUNDS_19970107"], "OLS 1997 With Lagged FEDFUNDS (All Quarters)"),
-    (ols_2002_without_lag_q1, train_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]], train_data_q1["FEDFUNDS_20020108"], test_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]], test_data_q1["FEDFUNDS_20020108"], "OLS 2002 Without Lagged FEDFUNDS (Q1)"),
-    (ols_2002_without_lag_all, train_data[["Inflation_Rate_2002", "OutputGap_2002"]], train_data["FEDFUNDS_20020108"], test_data[["Inflation_Rate_2002", "OutputGap_2002"]], test_data["FEDFUNDS_20020108"], "OLS 2002 Without Lagged FEDFUNDS (All Quarters)"),
-    (ols_2002_with_lag_q1, train_data_q1[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], train_data_q1["FEDFUNDS_20020108"], test_data_q1[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], test_data_q1["FEDFUNDS_20020108"], "OLS 2002 With Lagged FEDFUNDS (Q1)"),
-    (ols_2002_with_lag_all, train_data[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], train_data["FEDFUNDS_20020108"], test_data[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], test_data["FEDFUNDS_20020108"], "OLS 2002 With Lagged FEDFUNDS (All Quarters)"),
-]
+# Collect all metrics for 64-observation (full) models
+allMetrics64 = []
 
-# iv_models = [
-#     (results_1997_without_lagged_q1, train_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]], train_data_q1["FEDFUNDS_19970107"], test_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]], test_data_q1["FEDFUNDS_19970107"], "IV 1997 Without Lagged FEDFUNDS (Q1)"),
-#     (results_1997_without_lagged_all, train_data[["Inflation_Rate_1997", "OutputGap_1997"]], train_data["FEDFUNDS_19970107"], test_data[["Inflation_Rate_1997", "OutputGap_1997"]], test_data["FEDFUNDS_19970107"], "IV 1997 Without Lagged FEDFUNDS (All Quarters)"),
-#     (results_1997_with_lagged_q1, train_data_q1[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], train_data_q1["FEDFUNDS_19970107"], test_data_q1[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], test_data_q1["FEDFUNDS_19970107"], "IV 1997 With Lagged FEDFUNDS (Q1)"),
-#     (results_1997_with_lagged_all, train_data[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], train_data["FEDFUNDS_19970107"], test_data[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]], test_data["FEDFUNDS_19970107"], "IV 1997 With Lagged FEDFUNDS (All Quarters)"),
-#     (results_2002_without_lagged_q1, train_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]], train_data_q1["FEDFUNDS_20020108"], test_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]], test_data_q1["FEDFUNDS_20020108"], "IV 2002 Without Lagged FEDFUNDS (Q1)"),
-#     (results_2002_without_lagged_all, train_data[["Inflation_Rate_2002", "OutputGap_2002"]], train_data["FEDFUNDS_20020108"], test_data[["Inflation_Rate_2002", "OutputGap_2002"]], test_data["FEDFUNDS_20020108"], "IV 2002 Without Lagged FEDFUNDS (All Quarters)"),
-#     (results_2002_with_lagged_q1, train_data_q1[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], train_data_q1["FEDFUNDS_20020108"], test_data_q1[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], test_data_q1["FEDFUNDS_20020108"], "IV 2002 With Lagged FEDFUNDS (Q1)"),
-#     (results_2002_with_lagged_all, train_data[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], train_data["FEDFUNDS_20020108"], test_data[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]], test_data["FEDFUNDS_20020108"], "IV 2002 With Lagged FEDFUNDS (All Quarters)"),
-# ]
+# OLS models for 64 obs
+allMetrics64.append(run_ols(
+    train_data[["Inflation_Rate_1997", "OutputGap_1997"]],
+    train_data["FEDFUNDS_19970107"],
+    test_data[["Inflation_Rate_1997", "OutputGap_1997"]],
+    test_data["FEDFUNDS_19970107"]
+).assign(Model="OLS 1997 Without Lagged FedFunds (All Quarters)"))
 
-iv_models = [
-    # IV 1997 Without Lagged FEDFUNDS (First Quarter Only)
-    (results_1997_without_lagged_q1,
-     train_data_q1[[]],  # Exogenous variables for training
-     train_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for training
-     train_data_q1["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data_q1[[]],  # Exogenous variables for testing
-     test_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_19970107"],  # Dependent variable for testing
-     "IV 1997 Without Lagged FEDFUNDS (Q1)"
-    ),
+allMetrics64.append(run_ols(
+    train_data[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]],
+    train_data["FEDFUNDS_19970107"],
+    test_data[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]],
+    test_data["FEDFUNDS_19970107"]
+).assign(Model="OLS 1997 With Lagged FedFunds (All Quarters)"))
 
-    # IV 1997 Without Lagged FEDFUNDS (All Quarters)
-    (results_1997_without_lagged_all,
-     train_data[[]],  # Exogenous variables for training
-     train_data[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for training
-     train_data["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data[[]],  # Exogenous variables for testing
-     test_data[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for testing
-     test_data["FEDFUNDS_19970107"],  # Dependent variable for testing
-     "IV 1997 Without Lagged FEDFUNDS (All Quarters)"
-    ),
+allMetrics64.append(run_ols(
+    train_data[["Inflation_Rate_2002", "OutputGap_2002"]],
+    train_data["FEDFUNDS_20020108"],
+    test_data[["Inflation_Rate_2002", "OutputGap_2002"]],
+    test_data["FEDFUNDS_20020108"]
+).assign(Model="OLS 2002 Without Lagged FedFunds (All Quarters)"))
 
-    # IV 1997 With Lagged FEDFUNDS (First Quarter Only)
-    (results_1997_with_lagged_q1,
-     train_data_q1[["FedFunds_1997_Lag1"]],  # Exogenous variables for training
-     train_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for training
-     train_data_q1["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data_q1[["FedFunds_1997_Lag1"]],  # Exogenous variables for testing
-     test_data_q1[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_19970107"],  # Dependent variable for testing
-     "IV 1997 With Lagged FEDFUNDS (Q1)"
-    ),
+allMetrics64.append(run_ols(
+    train_data[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]],
+    train_data["FEDFUNDS_20020108"],
+    test_data[["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"]],
+    test_data["FEDFUNDS_20020108"]
+).assign(Model="OLS 2002 With Lagged FedFunds (All Quarters)"))
 
-    # IV 1997 With Lagged FEDFUNDS (All Quarters)
-    (results_1997_with_lagged_all,
-     train_data[["FedFunds_1997_Lag1"]],  # Exogenous variables for training
-     train_data[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for training
-     train_data["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data[["FedFunds_1997_Lag1"]],  # Exogenous variables for testing
-     test_data[["Inflation_Rate_1997", "OutputGap_1997"]],  # Endogenous variables for testing
-     test_data["FEDFUNDS_19970107"],  # Dependent variable for testing
-     "IV 1997 With Lagged FEDFUNDS (All Quarters)"
-    ),
+# IV models for 64 obs
+allMetrics64.append(run_iv(
+    results_1997_without_lagged_all,
+    train_data[[]],
+    train_data[["Inflation_Rate_1997", "OutputGap_1997"]],
+    train_data["FEDFUNDS_19970107"],
+    test_data[[]],
+    test_data[["Inflation_Rate_1997", "OutputGap_1997"]],
+    test_data["FEDFUNDS_19970107"]
+).assign(Model="IV 1997 Without Lagged FedFunds (All Quarters)"))
 
-    # IV 2002 Without Lagged FEDFUNDS (First Quarter Only)
-    (results_2002_without_lagged_q1,
-     train_data_q1[[]],  # Exogenous variables for training
-     train_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for training
-     train_data_q1["FEDFUNDS_20020108"],  # Dependent variable for training
-     test_data_q1[[]],  # Exogenous variables for testing
-     test_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_20020108"],  # Dependent variable for testing
-     "IV 2002 Without Lagged FEDFUNDS (Q1)"
-    ),
+allMetrics64.append(run_iv(
+    results_1997_with_lagged_all,
+    train_data[["FedFunds_1997_Lag1"]],
+    train_data[["Inflation_Rate_1997", "OutputGap_1997"]],
+    train_data["FEDFUNDS_19970107"],
+    test_data[["FedFunds_1997_Lag1"]],
+    test_data[["Inflation_Rate_1997", "OutputGap_1997"]],
+    test_data["FEDFUNDS_19970107"]
+).assign(Model="IV 1997 With Lagged FedFunds (All Quarters)"))
 
-    # IV 2002 Without Lagged FEDFUNDS (All Quarters)
-    (results_2002_without_lagged_all,
-     train_data[[]],  # Exogenous variables for training
-     train_data[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for training
-     train_data["FEDFUNDS_20020108"],  # Dependent variable for training
-     test_data[[]],  # Exogenous variables for testing
-     test_data[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for testing
-     test_data["FEDFUNDS_20020108"],  # Dependent variable for testing
-     "IV 2002 Without Lagged FEDFUNDS (All Quarters)"
-    ),
+allMetrics64.append(run_iv(
+    results_2002_without_lagged_all,
+    train_data[[]],
+    train_data[["Inflation_Rate_2002", "OutputGap_2002"]],
+    train_data["FEDFUNDS_20020108"],
+    test_data[[]],
+    test_data[["Inflation_Rate_2002", "OutputGap_2002"]],
+    test_data["FEDFUNDS_20020108"]
+).assign(Model="IV 2002 Without Lagged FedFunds (All Quarters)"))
 
-    # IV 2002 With Lagged FEDFUNDS (First Quarter Only)
-    (results_2002_with_lagged_q1,
-     train_data_q1[["FedFunds_2002_Lag1"]],  # Exogenous variables for training
-     train_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for training
-     train_data_q1["FEDFUNDS_20020108"],  # Dependent variable for training
-     test_data_q1[["FedFunds_2002_Lag1"]],  # Exogenous variables for testing
-     test_data_q1[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_20020108"],  # Dependent variable for testing
-     "IV 2002 With Lagged FEDFUNDS (Q1)"
-    ),
+allMetrics64.append(run_iv(
+    results_2002_with_lagged_all,
+    train_data[["FedFunds_2002_Lag1"]],
+    train_data[["Inflation_Rate_2002", "OutputGap_2002"]],
+    train_data["FEDFUNDS_20020108"],
+    test_data[["FedFunds_2002_Lag1"]],
+    test_data[["Inflation_Rate_2002", "OutputGap_2002"]],
+    test_data["FEDFUNDS_20020108"]
+).assign(Model="IV 2002 With Lagged FedFunds (All Quarters)"))
 
-    # IV 2002 With Lagged FEDFUNDS (All Quarters)
-    (results_2002_with_lagged_all,
-     train_data[["FedFunds_2002_Lag1"]],  # Exogenous variables for training
-     train_data[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for training
-     train_data["FEDFUNDS_20020108"],  # Dependent variable for training
-     test_data[["FedFunds_2002_Lag1"]],  # Exogenous variables for testing
-     test_data[["Inflation_Rate_2002", "OutputGap_2002"]],  # Endogenous variables for testing
-     test_data["FEDFUNDS_20020108"],  # Dependent variable for testing
-     "IV 2002 With Lagged FEDFUNDS (All Quarters)"
-    )
-]
-
-
-all_metrics = []
-
-# Process OLS models
-for model, X_train, y_train, X_test, y_test, model_name in ols_models:
-    all_metrics.append(calculate_metrics(model, X_train, y_train, X_test, y_test, model_name))
-
-# Process IV models
-for model, X_train_exog, X_train_endog, y_train, X_test_exog, X_test_endog, y_test, model_name in iv_models:
-    all_metrics.append(calculate_metrics_iv(model, X_train_exog, X_train_endog, y_train, X_test_exog, X_test_endog, y_test, model_name))
-
-# Creating a DataFrame for the metrics
-metrics_df = pd.DataFrame(all_metrics)
-
-model_names = [
-    "OLS (1997 Vintage Without Lagged FEDFUNDS, Q1)",
-    "OLS (1997 Vintage Without Lagged FEDFUNDS, All Quarters)",
-    "OLS (1997 Vintage With Lagged FEDFUNDS, Q1)",
-    "OLS (1997 Vintage With Lagged FEDFUNDS, All Quarters)",
-    "OLS (2002 Vintage Without Lagged FEDFUNDS, Q1)",
-    "OLS (2002 Vintage Without Lagged FEDFUNDS, All Quarters)",
-    "OLS (2002 Vintage With Lagged FEDFUNDS, Q1)",
-    "OLS (2002 Vintage With Lagged FEDFUNDS, All Quarters)",
-    "IV (1997 Vintage Without Lagged FEDFUNDS, Q1)",
-    "IV (1997 Vintage Without Lagged FEDFUNDS, All Quarters)",
-    "IV (1997 Vintage With Lagged FEDFUNDS, Q1)",
-    "IV (1997 Vintage With Lagged FEDFUNDS, All Quarters)",
-    "IV (2002 Vintage Without Lagged FEDFUNDS, Q1)",
-    "IV (2002 Vintage Without Lagged FEDFUNDS, All Quarters)",
-    "IV (2002 Vintage With Lagged FEDFUNDS, Q1)",
-    "IV (2002 Vintage With Lagged FEDFUNDS, All Quarters)"
-]
-
-# Assuming `metrics_df` contains the table data
-metrics_df['Model Name'] = model_names
-
-# Displaying the DataFrame
-print(metrics_df)
-
-OLSpred1997WithoutLagQ1 = ols_1997_without_lag_q1.predict(X_1997_q1)
-OLSpred1997WithoutLagAll = ols_1997_without_lag_all.predict(X_1997_all)
-OLSpred1997WithLagQ1 = ols_1997_with_lag_q1.predict(X_1997_q1_lagged)
-OLSpred1997WithLagAll = ols_1997_with_lag_all.predict(X_1997_all_lagged)
-OLSpred2002WithoutLagQ1 = ols_2002_without_lag_q1.predict(X_2002_q1)
-OLSpred2002WithoutLagAll = ols_2002_without_lag_all.predict(X_2002_all)
-OLSpred2002WithLagQ1 = ols_2002_with_lag_q1.predict(X_2002_q1_lagged)
-OLSpred2002WithLagAll = ols_2002_with_lag_all.predict(X_2002_all_lagged)
-
-IVpred1997WithoutLagQ1 = results_1997_without_lagged_q1.predict(exog=exog_1997_q1, endog=endog_1997_q1)
-IVpred1997WithoutLagAll = results_1997_without_lagged_all.predict(exog=exog_1997_all, endog=endog_1997_all)
-IVpred1997WithLagQ1 = results_1997_with_lagged_q1.predict(exog=exog_1997_q1_lagged, endog=endog_1997_q1_lagged)
-IVpred1997WithLagAll = results_1997_with_lagged_all.predict(exog=exog_1997_all_lagged, endog=endog_1997_all_lagged)
-IVpred2002WithoutLagQ1 = results_2002_without_lagged_q1.predict(exog=exog_2002_q1, endog=endog_2002_q1)
-IVpred2002WithoutLagAll = results_2002_without_lagged_all.predict(exog=exog_2002_all, endog=endog_2002_all)
-IVpred2002WithLagQ1 = results_2002_with_lagged_q1.predict(exog=exog_2002_q1_lagged, endog=endog_2002_q1_lagged)
-IVpred2002WithLagAll = results_2002_with_lagged_all.predict(exog=exog_2002_all_lagged, endog=endog_2002_all_lagged)
-
-
-
-plt.plot(figsize = (10, 6))
-plt.plot(merged_data['observation_date'], merged_data['FEDFUNDS_19970107'], label = "Actual FedFunds Values (1997)", alpha = 0.6, color = "pink")
-plt.plot(merged_data['observation_date'], IVpred1997WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (IV)", alpha = 0.6,color = "purple")
-plt.plot(merged_data['observation_date'], OLSpred1997WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (OLS)", alpha = 0.6,color = "red")
-plt.plot(merged_data['observation_date'], IVpred1997WithLagAll, label = "Pred Vals Incl Lagged FedFunds (IV)", alpha = 0.6,color = "blue")
-plt.plot(merged_data['observation_date'], OLSpred1997WithLagAll, label = "Pred Vals Incl Lagged FedFunds (OLS)", alpha = 0.6,color = "orange")
-plt.title("Actual vs. Pred FedFunds Values (1997)")
-plt.show()
-
-plt.plot(figsize = (10, 6))
-plt.plot(merged_data['observation_date'], merged_data['FEDFUNDS_20020108'], label = "Actual FedFunds Values (2002)", alpha = 0.6, color = "pink")
-plt.plot(merged_data['observation_date'], IVpred2002WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (IV)", alpha = 0.6,color = "purple")
-plt.plot(merged_data['observation_date'], OLSpred2002WithoutLagAll, label = "Pred Vals Excl Lagged FedFunds (OLS)", alpha = 0.6,color = "red")
-plt.plot(merged_data['observation_date'], IVpred2002WithLagAll, label = "Pred Vals Incl Lagged FedFunds (IV)", alpha = 0.6,color = "blue")
-plt.plot(merged_data['observation_date'], OLSpred2002WithLagAll, label = "Pred Vals Incl Lagged FedFunds (OLS)", alpha = 0.6,color = "orange")
-plt.title("Actual vs. Pred FedFunds Values (2002)")
-plt.show()
+# Combine all results into a single DataFrame
+metrics64df = pd.concat(allMetrics64, ignore_index=True)
+print(metrics64df)

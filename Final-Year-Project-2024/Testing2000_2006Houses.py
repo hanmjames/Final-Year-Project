@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 from statsmodels.api import OLS, add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from linearmodels.iv import IV2SLS
-import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
+pd.set_option('display.float_format', '{:.2f}'.format)
 
 from RegressionHouses import (
     # OLS Models
@@ -19,7 +18,7 @@ from RegressionHouses import (
     results_2002_without_lagged_q1, results_2002_without_lagged_all,
     results_2002_with_lagged_q1, results_2002_with_lagged_all,
 
-    merged_data
+    scaler
 )
 
 fedFundsTest = pd.read_csv("FedfundsTest.csv")
@@ -96,16 +95,68 @@ merged_test_data = (
     # .merge(unemploymentTest[['observation_date', 'UNRATE', 'Unemployment_Lag1', 'Unemployment_Lag2', 'Unemployment_Lag3']], on='observation_date')
 )
 
+#
+# print(inflationTest.head())
+# print(fedFundsTest.head())
+# print(merged_pot_gdp.head())
+# print(housingTest.head())
+# print(oilTest.head())
+# print(unemploymentTest.head())
+# # Display merged data
+# print("Merged Test Data:")
+# print(merged_test_data.head())
 
-print(inflationTest.head())
-print(fedFundsTest.head())
-print(merged_pot_gdp.head())
-print(housingTest.head())
-print(oilTest.head())
-print(unemploymentTest.head())
-# Display merged data
-print("Merged Test Data:")
-print(merged_test_data.head())
+# Rename columns to match training vintage
+merged_test_data.rename(columns={
+    "FEDFUNDS": "FEDFUNDS_19970107",
+    "FEDFUNDS_Lag1": "FedFunds_1997_Lag1",
+    "Inflation_Rate": "Inflation_Rate_1997",
+    "Inflation_Rate_Lag1": "Inflation_Rate_1997_Lag1",
+    "Inflation_Rate_Lag2": "Inflation_Rate_1997_Lag2",
+    "Inflation_Rate_Lag3": "Inflation_Rate_1997_Lag3",
+    "OutputGap": "OutputGap_1997",
+    "OutputGap_Lag1": "OutputGap_1997_Lag1",
+    "OutputGap_Lag2": "OutputGap_1997_Lag2",
+    "OutputGap_Lag3": "OutputGap_1997_Lag3",
+    "HOUST": "HOUST_19970122",
+    "Housing_Lag1": "Houses_1997_Lag1",
+    "Housing_Lag2": "Houses_1997_Lag2",
+    "Housing_Lag3": "Houses_1997_Lag3"
+}, inplace=True)
+
+# Duplicate for 2002 vintage
+merged_test_data["FEDFUNDS_20020108"] = merged_test_data["FEDFUNDS_19970107"]
+merged_test_data["FedFunds_2002_Lag1"] = merged_test_data["FedFunds_1997_Lag1"]
+merged_test_data["Inflation_Rate_2002"] = merged_test_data["Inflation_Rate_1997"]
+merged_test_data["Inflation_Rate_2002_Lag1"] = merged_test_data["Inflation_Rate_1997_Lag1"]
+merged_test_data["Inflation_Rate_2002_Lag2"] = merged_test_data["Inflation_Rate_1997_Lag2"]
+merged_test_data["Inflation_Rate_2002_Lag3"] = merged_test_data["Inflation_Rate_1997_Lag3"]
+merged_test_data["OutputGap_2002"] = merged_test_data["OutputGap_1997"]
+merged_test_data["OutputGap_2002_Lag1"] = merged_test_data["OutputGap_1997_Lag1"]
+merged_test_data["OutputGap_2002_Lag2"] = merged_test_data["OutputGap_1997_Lag2"]
+merged_test_data["OutputGap_2002_Lag3"] = merged_test_data["OutputGap_1997_Lag3"]
+merged_test_data["HOUST_20020117"] = merged_test_data["HOUST_19970122"]
+merged_test_data["Houses_2002_Lag1"] = merged_test_data["Houses_1997_Lag1"]
+merged_test_data["Houses_2002_Lag2"] = merged_test_data["Houses_1997_Lag2"]
+merged_test_data["Houses_2002_Lag3"] = merged_test_data["Houses_1997_Lag3"]
+
+standardize_cols = [
+    # 1997
+    "FEDFUNDS_19970107", "FedFunds_1997_Lag1",
+    "Inflation_Rate_1997", "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+    "OutputGap_1997", "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+    "HOUST_19970122", "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3",
+
+    # 2002
+    "FEDFUNDS_20020108", "FedFunds_2002_Lag1",
+    "Inflation_Rate_2002", "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+    "OutputGap_2002", "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+    "HOUST_20020117", "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"
+]
+
+standardize_cols = scaler.feature_names_in_.tolist()
+merged_test_data = merged_test_data.dropna(subset=standardize_cols)
+merged_test_data[standardize_cols] = scaler.transform(merged_test_data[standardize_cols])
 
 
 # # Adjust the features to use 2000–2006 lagged variables
@@ -120,147 +171,123 @@ print(merged_test_data.head())
 # #     (ols_2002_with_lag_all, "OLS 2002 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"])
 # # ]
 ols_models = [
-    # 1997 Without Lagged FEDFUNDS (Q1)
     (
         ols_1997_without_lag_q1,
         "OLS 1997 Without Lagged FEDFUNDS (Q1)",
-        ["Inflation_Rate", "OutputGap", "HOUST"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"]
     ),
-    # 1997 Without Lagged FEDFUNDS (All Quarters)
     (
         ols_1997_without_lag_all,
         "OLS 1997 Without Lagged FEDFUNDS (All Quarters)",
-        ["Inflation_Rate", "OutputGap", "HOUST"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"]
     ),
-    # 1997 With Lagged FEDFUNDS (Q1)
     (
         ols_1997_with_lag_q1,
         "OLS 1997 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "HOUST"]
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"]
     ),
-    # 1997 With Lagged FEDFUNDS (All Quarters)
     (
         ols_1997_with_lag_all,
         "OLS 1997 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "HOUST"]
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"]
     ),
-    # 2002 Without Lagged FEDFUNDS (Q1)
     (
         ols_2002_without_lag_q1,
         "OLS 2002 Without Lagged FEDFUNDS (Q1)",
-        ["Inflation_Rate", "OutputGap", "HOUST"]
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"]
     ),
-    # 2002 Without Lagged FEDFUNDS (All Quarters)
     (
         ols_2002_without_lag_all,
         "OLS 2002 Without Lagged FEDFUNDS (All Quarters)",
-        ["Inflation_Rate", "OutputGap", "HOUST"]
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"]
     ),
-    # 2002 With Lagged FEDFUNDS (Q1)
     (
         ols_2002_with_lag_q1,
         "OLS 2002 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "HOUST"]
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"]
     ),
-    # 2002 With Lagged FEDFUNDS (All Quarters)
     (
         ols_2002_with_lag_all,
         "OLS 2002 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "HOUST"]
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"]
     )
 ]
 
-
 iv_models = [
-    # IV model for 1997 without lagged FEDFUNDS (Q1)
     (
         results_1997_without_lagged_q1,
         "IV 1997 Without Lagged FEDFUNDS (Q1)",
         [],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3"]
-         # "Houses_Lag1", "Houses_Lag2", "Houses_Lag3"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3"]
     ),
-
-    # IV model for 1997 without lagged FEDFUNDS (All Quarters)
     (
         results_1997_without_lagged_all,
         "IV 1997 Without Lagged FEDFUNDS (All Quarters)",
         [],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3"]
     ),
-
-    # IV model for 1997 with lagged FEDFUNDS (Q1)
     (
         results_1997_with_lagged_q1,
         "IV 1997 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1"]
+        ["FedFunds_1997_Lag1"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Houses_1997_Lag1"]
     ),
-
-    # IV model for 1997 with lagged FEDFUNDS (All Quarters)
     (
         results_1997_with_lagged_all,
         "IV 1997 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3"]
+        ["FedFunds_1997_Lag1"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3"]
     ),
-
-   # IV model for 2002 without lagged FEDFUNDS (Q1)
     (
         results_2002_without_lagged_q1,
         "IV 2002 Without Lagged FEDFUNDS (Q1)",
         [],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3"]
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"]
     ),
-
-
-    # IV model for 2002 without lagged FEDFUNDS (All Quarters)
     (
-        results_2002_without_lagged_all, "IV 2002 Without Lagged FEDFUNDS (All Quarters)", [],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3"]
+        results_2002_without_lagged_all,
+        "IV 2002 Without Lagged FEDFUNDS (All Quarters)",
+        [],
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"]
     ),
-
-
-    # IV model for 2002 with lagged FEDFUNDS (Q1)
     (
         results_2002_with_lagged_q1,
         "IV 2002 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1"]
+        ["FedFunds_2002_Lag1"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Houses_2002_Lag1"]
     ),
-
-    # IV model for 2002 with lagged FEDFUNDS (All Quarters)
     (
         results_2002_with_lagged_all,
         "IV 2002 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "HOUST"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3"]
+        ["FedFunds_2002_Lag1"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"]
     )
 ]
+
 
 # for i, model_tuple in enumerate(iv_models):
 #     print(f"Model {i}: {len(model_tuple)} elements")
@@ -287,7 +314,7 @@ def evaluate_models(test_data, ols_models, iv_models):
         print(len(features))
         X_test = test_data[features]
         X_test = add_constant(X_test)  # Add constant if required
-        y_test = test_data["FEDFUNDS"]
+        y_test = test_data["FEDFUNDS_19970107"]
         print(len(y_test))
 
         # Predict and calculate metrics
@@ -318,7 +345,7 @@ def evaluate_models(test_data, ols_models, iv_models):
         print(f"Evaluating IV model: {model_name}")
         exog_test = add_constant(test_data[exog_features])  # Exogenous variables
         endog_test = test_data[endog_features]  # Endogenous variables
-        y_test = test_data["FEDFUNDS"]
+        y_test = test_data["FEDFUNDS_19970107"]
         print(exog_test.shape, endog_test.shape)
         print("#########################################################################")
 
@@ -453,4 +480,4 @@ def display_correlation_for_models(test_data, ols_models, iv_models):
 
 
 # Call the function
-display_correlation_for_models(merged_test_data, ols_models, iv_models)
+# display_correlation_for_models(merged_test_data, ols_models, iv_models)

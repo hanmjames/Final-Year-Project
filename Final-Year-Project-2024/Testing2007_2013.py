@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from statsmodels.api import OLS, add_constant
+from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from linearmodels.iv import IV2SLS
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
@@ -85,6 +85,19 @@ merged_test_data = (
 print("Merged Test Data:")
 print(merged_test_data.head())
 
+# Standardize selected columns
+standardizeCols = [
+    "FEDFUNDS", "FEDFUNDS_Lag1", "FEDFUNDS_Lag2", "FEDFUNDS_Lag3",
+    "Inflation_Rate", "Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
+    "OutputGap", "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"
+]
+
+# Drop any NaNs before standardization
+merged_test_data.dropna(subset=standardizeCols, inplace=True)
+
+# Apply standardization
+scaler = StandardScaler()
+merged_test_data[standardizeCols] = scaler.fit_transform(merged_test_data[standardizeCols])
 
 # Adjust the features to use 2000–2006 lagged variables
 ols_models = [
@@ -228,7 +241,7 @@ def evaluate_models(test_data, ols_models, iv_models):
 
 
 model_comparison_results = evaluate_models(merged_test_data, ols_models, iv_models)
-print(model_comparison_results)
+print(model_comparison_results[0])
 
 def save_df_as_image(df, filename="TestingResults2007-2013.png"):
     # Create a Matplotlib figure
@@ -257,22 +270,22 @@ def save_df_as_image(df, filename="TestingResults2007-2013.png"):
 # Save the `model_comparison_results` DataFrame to an image
 # save_df_as_image(model_comparison_results, "TestingResults2007-2013.png")
 
-plt.figure(figsize=(10, 6))
-plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
-plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
-plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
-plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2007-2013")
-plt.legend()
-plt.show()
-
-plt.figure(figsize=(10, 6))
-plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
-plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
-plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
-plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2007-2013")
-plt.legend()
-plt.show()
+# plt.figure(figsize=(10, 6))
+# plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+# plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2007-2013")
+# plt.legend()
+# plt.show()
+#
+# plt.figure(figsize=(10, 6))
+# plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+# plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2007-2013")
+# plt.legend()
+# plt.show()

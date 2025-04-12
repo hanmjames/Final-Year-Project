@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from statsmodels.api import OLS, add_constant
+from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from linearmodels.iv import IV2SLS
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 pd.set_option('display.max_columns', None)
 
 from RegressionAddnlVars import (
@@ -107,18 +106,23 @@ print(unemploymentTest.head())
 print("Merged Test Data:")
 print(merged_test_data.head())
 
+# Standardize selected columns
+standardizeCols = [
+    "FEDFUNDS", "FEDFUNDS_Lag1", "FEDFUNDS_Lag2", "FEDFUNDS_Lag3",
+    "Inflation_Rate", "Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
+    "OutputGap", "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
+    "HOUST", "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+    "OILPRICE", "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
+    "UNRATE", "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"
+]
 
-# # Adjust the features to use 2000–2006 lagged variables
-# # ols_models = [
-# #     (ols_1997_without_lag_q1, "OLS 1997 Without Lagged FEDFUNDS (Q1)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_1997_without_lag_all, "OLS 1997 Without Lagged FEDFUNDS (All Quarters)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_1997_with_lag_q1, "OLS 1997 With Lagged FEDFUNDS (Q1)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]),
-# #     (ols_1997_with_lag_all, "OLS 1997 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_without_lag_q1, "OLS 2002 Without Lagged FEDFUNDS (Q1)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_without_lag_all, "OLS 2002 Without Lagged FEDFUNDS (All Quarters)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_with_lag_q1, "OLS 2002 With Lagged FEDFUNDS (Q1)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_with_lag_all, "OLS 2002 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"])
-# # ]
+# Drop any NaNs before standardization
+merged_test_data.dropna(subset=standardizeCols, inplace=True)
+
+# Apply standardization
+scaler = StandardScaler()
+merged_test_data[standardizeCols] = scaler.fit_transform(merged_test_data[standardizeCols])
+
 ols_models = [
     # 1997 Without Lagged FEDFUNDS (Q1)
     (
@@ -228,8 +232,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1", "Houses_Lag2", "Houses_Lag3",
-         "Oil_Price_Lag1", "Oil_Price_Lag2", "Oil_Price_Lag3",
+         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+         "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
          "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
     ),
 
@@ -241,8 +245,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1", "Houses_Lag2", "Houses_Lag3",
-         "Oil_Price_Lag1", "Oil_Price_Lag2", "Oil_Price_Lag3",
+         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+         "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
          "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
     ),
 
@@ -254,8 +258,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1",
-         "Oil_Price_Lag1",
+         "Housing_Lag1",
+         "Oil_Lag1",
          "Unemployment_Lag1"]
     ),
 
@@ -267,8 +271,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1", "Houses_Lag2", "Houses_Lag3",
-         "Oil_Price_Lag1", "Oil_Price_Lag2", "Oil_Price_Lag3",
+         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+         "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
          "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
     ),
 
@@ -280,8 +284,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1", "Houses_Lag2", "Houses_Lag3",
-         "Oil_Price_Lag1", "Oil_Price_Lag2", "Oil_Price_Lag3",
+         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+         "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
          "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
     ),
 
@@ -292,22 +296,11 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1", "Houses_Lag2", "Houses_Lag3",
-         "Oil_Price_Lag1", "Oil_Price_Lag2", "Oil_Price_Lag3",
+         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+         "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
          "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
     ),
 
-# #     # IV model for 2002 without lagged FEDFUNDS (Q1)
-# #     (results_2002_without_lagged_q1, "IV 2002 Without Lagged FEDFUNDS (Q1)", [],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 2002 without lagged FEDFUNDS (All Quarters)
-# #     (results_2002_without_lagged_all, "IV 2002 Without Lagged FEDFUNDS (All Quarters)", [],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
     # IV model for 2002 with lagged FEDFUNDS (Q1)
     (
         results_2002_with_lagged_q1,
@@ -316,8 +309,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1",
-         "Oil_Price_Lag1",
+         "Housing_Lag1",
+         "Oil_Lag1",
          "Unemployment_Lag1"]
     ),
 
@@ -329,8 +322,8 @@ iv_models = [
         ["Inflation_Rate", "OutputGap", "HOUST", "OILPRICE", "UNRATE"],
         ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
          "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Houses_Lag1", "Houses_Lag2", "Houses_Lag3",
-         "Oil_Price_Lag1", "Oil_Price_Lag2", "Oil_Price_Lag3",
+         "Housing_Lag1", "Housing_Lag2", "Housing_Lag3",
+         "Oil_Lag1", "Oil_Lag2", "Oil_Lag3",
          "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
     )
 ]
@@ -457,22 +450,74 @@ print(model_comparison_results)
 # print(merged_data[['FEDFUNDS_19970107', 'FEDFUNDS_19970107', 'OutputGap_1997']].describe())
 # print(merged_test_data[['FEDFUNDS', 'Inflation_Rate', 'OutputGap']].describe())
 
-plt.figure(figsize=(10, 6))
-plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
-plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
-plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
-plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2000-2006 [3 Addnl Vars]")
-plt.legend()
-plt.show()
+# plt.figure(figsize=(10, 6))
+# plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+# plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2000-2006 [3 Addnl Vars]")
+# plt.legend()
+# plt.show()
+#
+# plt.figure(figsize=(10, 6))
+# plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+# plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2000-2006 [3 Addnl Vars]")
+# plt.legend()
+# plt.show()
 
-plt.figure(figsize=(10, 6))
-plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
-plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
-plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
-plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2000-2006 [3 Addnl Vars]")
-plt.legend()
-plt.show()
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def display_correlation_for_models(test_data, ols_models, iv_models):
+    """
+    Display correlation heatmaps for predictors of each OLS and IV model.
+    """
+    for model, model_name, features in ols_models:
+        print(f"\nCorrelation Matrix for OLS Model: {model_name}")
+
+        # Filter relevant predictors
+        predictors_df = test_data[features]
+
+        # Calculate correlation matrix
+        corr_matrix = predictors_df.corr()
+
+        # Display correlation matrix
+        print(corr_matrix)
+
+        # Plot heatmap
+        plt.figure(figsize=(10, 10))
+        sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+        plt.title(f"Correlation Heatmap - {model_name}")
+        plt.show()
+
+    for model, model_name, exog_features, endog_features, instruments in iv_models:
+        print(f"\nCorrelation Matrix for IV Model: {model_name}")
+
+        # Combine exogenous, endogenous, and instrument features
+        all_features = exog_features + endog_features + instruments
+
+        # Filter relevant predictors
+        predictors_df = test_data[all_features]
+
+        # Calculate correlation matrix
+        corr_matrix = predictors_df.corr()
+
+        # Display correlation matrix
+        print(corr_matrix)
+
+        # Plot heatmap
+        plt.figure(figsize=(10, 10))
+        sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+        plt.title(f"Correlation Heatmap - {model_name}")
+        plt.show()
+
+
+# Call the function
+# display_correlation_for_models(merged_test_data, ols_models, iv_models)

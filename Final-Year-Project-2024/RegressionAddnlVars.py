@@ -3,6 +3,7 @@ import numpy as np
 from statsmodels.api import OLS, add_constant
 from linearmodels.iv import IV2SLS
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 # Set pandas display option to show all columns
 pd.set_option('display.max_columns', None)
@@ -71,6 +72,21 @@ merged_data = merged_data[(merged_data['observation_date'] >= '1981-01-01') & (m
 # Ensure 'observation_date' is retained in the merged data
 merged_data.reset_index(drop=True, inplace=True)
 
+features_to_standardize = [
+    'Inflation_Rate_1997', 'OutputGap_1997', 'HOUST_19970122',
+    'OILPRICE_19970303', 'UNRATE_19970110',
+    'Inflation_Rate_2002', 'OutputGap_2002', 'HOUST_20020117',
+    'OILPRICE_20020102', 'UNRATE_20020104'
+]
+
+# Drop rows with NaNs in these features before standardizing
+merged_data.dropna(subset=features_to_standardize, inplace=True)
+
+# Apply StandardScaler
+scaler = StandardScaler()
+merged_data[features_to_standardize] = scaler.fit_transform(merged_data[features_to_standardize])
+
+
 # Display the updated merged data with output gaps and inflation rate
 print("Merged Data (After Adding Unemployment, Housing, And Oil Prices):")
 print(merged_data.head())
@@ -110,7 +126,7 @@ y_1997_all = merged_data["FEDFUNDS_19970107"]
 X_1997_all = merged_data[["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122", "OILPRICE_19970303", "UNRATE_19970110"]]
 X_1997_all = add_constant(X_1997_all)
 
-ols_1997_without_lag_all = OLS(y_1997_q1, X_1997_q1).fit()
+ols_1997_without_lag_all = OLS(y_1997_all, X_1997_all).fit()
 print("OLS Results for 1997 (Without Lagged FedFunds, All Quarters):")
 print(ols_1997_without_lag_all.summary())
 
@@ -720,4 +736,42 @@ metrics_df = pd.DataFrame(all_metrics)
 # Displaying the DataFrame
 print(metrics_df)
 
-print(merged_data.columns)
+# print(merged_data.columns)
+
+# for model in ols_models:
+#     print(model[-1])
+#     print(model[0].summary())
+
+# for model in iv_models:
+#     print(model[-1])
+#     print(model[0].summary)
+
+def format_significance(pval):
+    if pval <= 0.001:
+        return ' (***)'
+    elif pval <= 0.01:
+        return ' (**)'
+    elif pval <= 0.05:
+        return ' (*)'
+    else:
+        return ' (ns)'
+
+# Print coefficients for OLS models
+print("======== OLS COEFFICIENTS ========")
+for model, _, _, _, _, name in ols_models:
+    print(f"\n{name}")
+    for var in model.params.index:
+        coef = model.params[var]
+        pval = model.pvalues[var]
+        sig = format_significance(pval)
+        print(f"{var}: {coef:.2f}{sig}")
+
+# Print coefficients for IV models
+print("\n======== IV COEFFICIENTS ========")
+for model, _, _, _, _, _, _, name in iv_models:
+    print(f"\n{name}")
+    for var in model.params.index:
+        coef = model.params[var]
+        pval = model.pvalues[var]
+        sig = format_significance(pval)
+        print(f"{var}: {coef:.2f}{sig}")

@@ -5,6 +5,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from linearmodels.iv import IV2SLS
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
+pd.set_option('display.float_format', '{:.2f}'.format)
 
 from RegressionUnemployment import (
     # OLS Models
@@ -19,7 +20,7 @@ from RegressionUnemployment import (
     results_2002_without_lagged_q1, results_2002_without_lagged_all,
     results_2002_with_lagged_q1, results_2002_with_lagged_all,
 
-    merged_data
+    scaler
 )
 
 fedFundsTest = pd.read_csv("FedfundsTest.csv")
@@ -107,210 +108,193 @@ print(unemploymentTest.head())
 print("Merged Test Data:")
 print(merged_test_data.head())
 
+merged_test_data.rename(columns={
+    "FEDFUNDS": "FEDFUNDS_19970107",
+    "FEDFUNDS_Lag1": "FedFunds_1997_Lag1",
+    "Inflation_Rate": "Inflation_Rate_1997",
+    "Inflation_Rate_Lag1": "Inflation_Rate_1997_Lag1",
+    "Inflation_Rate_Lag2": "Inflation_Rate_1997_Lag2",
+    "Inflation_Rate_Lag3": "Inflation_Rate_1997_Lag3",
+    "OutputGap": "OutputGap_1997",
+    "OutputGap_Lag1": "OutputGap_1997_Lag1",
+    "OutputGap_Lag2": "OutputGap_1997_Lag2",
+    "OutputGap_Lag3": "OutputGap_1997_Lag3",
+    "UNRATE": "UNRATE_19970110",
+    "Unemployment_Lag1": "Unemployment_1997_Lag1",
+    "Unemployment_Lag2": "Unemployment_1997_Lag2",
+    "Unemployment_Lag3": "Unemployment_1997_Lag3"
+}, inplace=True)
 
-# # Adjust the features to use 2000–2006 lagged variables
-# # ols_models = [
-# #     (ols_1997_without_lag_q1, "OLS 1997 Without Lagged FEDFUNDS (Q1)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_1997_without_lag_all, "OLS 1997 Without Lagged FEDFUNDS (All Quarters)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_1997_with_lag_q1, "OLS 1997 With Lagged FEDFUNDS (Q1)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]),
-# #     (ols_1997_with_lag_all, "OLS 1997 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_without_lag_q1, "OLS 2002 Without Lagged FEDFUNDS (Q1)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_without_lag_all, "OLS 2002 Without Lagged FEDFUNDS (All Quarters)", ["Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_with_lag_q1, "OLS 2002 With Lagged FEDFUNDS (Q1)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]),
-# #     (ols_2002_with_lag_all, "OLS 2002 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"])
-# # ]
+merged_test_data["FEDFUNDS_20020108"] = merged_test_data["FEDFUNDS_19970107"]
+merged_test_data["FedFunds_2002_Lag1"] = merged_test_data["FedFunds_1997_Lag1"]
+merged_test_data["Inflation_Rate_2002"] = merged_test_data["Inflation_Rate_1997"]
+merged_test_data["Inflation_Rate_2002_Lag1"] = merged_test_data["Inflation_Rate_1997_Lag1"]
+merged_test_data["Inflation_Rate_2002_Lag2"] = merged_test_data["Inflation_Rate_1997_Lag2"]
+merged_test_data["Inflation_Rate_2002_Lag3"] = merged_test_data["Inflation_Rate_1997_Lag3"]
+merged_test_data["OutputGap_2002"] = merged_test_data["OutputGap_1997"]
+merged_test_data["OutputGap_2002_Lag1"] = merged_test_data["OutputGap_1997_Lag1"]
+merged_test_data["OutputGap_2002_Lag2"] = merged_test_data["OutputGap_1997_Lag2"]
+merged_test_data["OutputGap_2002_Lag3"] = merged_test_data["OutputGap_1997_Lag3"]
+merged_test_data["UNRATE_20020104"] = merged_test_data["UNRATE_19970110"]
+merged_test_data["Unemployment_2002_Lag1"] = merged_test_data["Unemployment_1997_Lag1"]
+merged_test_data["Unemployment_2002_Lag2"] = merged_test_data["Unemployment_1997_Lag2"]
+merged_test_data["Unemployment_2002_Lag3"] = merged_test_data["Unemployment_1997_Lag3"]
+
+standardize_cols = [
+    # 1997
+    "FedFunds_1997_Lag1", "Inflation_Rate_1997", "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+    "OutputGap_1997", "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+    "UNRATE_19970110", "Unemployment_1997_Lag1", "Unemployment_1997_Lag2", "Unemployment_1997_Lag3",
+
+    # 2002
+    "FedFunds_2002_Lag1", "Inflation_Rate_2002", "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+    "OutputGap_2002", "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+    "UNRATE_20020104", "Unemployment_2002_Lag1", "Unemployment_2002_Lag2", "Unemployment_2002_Lag3"
+]
+standardize_cols = scaler.feature_names_in_.tolist()
+merged_test_data = merged_test_data.dropna(subset=standardize_cols)
+merged_test_data[standardize_cols] = scaler.transform(merged_test_data[standardize_cols])
+
 ols_models = [
     # 1997 Without Lagged FEDFUNDS (Q1)
     (
         ols_1997_without_lag_q1,
         "OLS 1997 Without Lagged FEDFUNDS (Q1)",
-        ["Inflation_Rate", "OutputGap", "UNRATE"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"]
     ),
     # 1997 Without Lagged FEDFUNDS (All Quarters)
     (
         ols_1997_without_lag_all,
         "OLS 1997 Without Lagged FEDFUNDS (All Quarters)",
-        ["Inflation_Rate", "OutputGap", "UNRATE"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"]
     ),
     # 1997 With Lagged FEDFUNDS (Q1)
     (
         ols_1997_with_lag_q1,
         "OLS 1997 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "UNRATE"]
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"]
     ),
     # 1997 With Lagged FEDFUNDS (All Quarters)
     (
         ols_1997_with_lag_all,
         "OLS 1997 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "UNRATE"]
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"]
     ),
     # 2002 Without Lagged FEDFUNDS (Q1)
     (
         ols_2002_without_lag_q1,
         "OLS 2002 Without Lagged FEDFUNDS (Q1)",
-        ["Inflation_Rate", "OutputGap", "UNRATE"]
+        ["Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"]
     ),
     # 2002 Without Lagged FEDFUNDS (All Quarters)
     (
         ols_2002_without_lag_all,
         "OLS 2002 Without Lagged FEDFUNDS (All Quarters)",
-        ["Inflation_Rate", "OutputGap", "UNRATE"]
+        ["Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"]
     ),
     # 2002 With Lagged FEDFUNDS (Q1)
     (
         ols_2002_with_lag_q1,
         "OLS 2002 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "UNRATE"]
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"]
     ),
     # 2002 With Lagged FEDFUNDS (All Quarters)
     (
         ols_2002_with_lag_all,
         "OLS 2002 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap", "UNRATE"]
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"]
     )
 ]
-
-
-# # iv_models = [
-# #     # IV model for 1997 without lagged FEDFUNDS (Q1)
-# #     (results_1997_without_lagged_q1, "IV 1997 Without Lagged FEDFUNDS (Q1)", [],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 1997 without lagged FEDFUNDS (All Quarters)
-# #     (results_1997_without_lagged_all, "IV 1997 Without Lagged FEDFUNDS (All Quarters)", [],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 1997 with lagged FEDFUNDS (Q1)
-# #     (results_1997_with_lagged_q1, "IV 1997 With Lagged FEDFUNDS (Q1)", ["FEDFUNDS_Lag1"],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 1997 with lagged FEDFUNDS (All Quarters)
-# #     (results_1997_with_lagged_all, "IV 1997 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1"],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 2002 without lagged FEDFUNDS (Q1)
-# #     (results_2002_without_lagged_q1, "IV 2002 Without Lagged FEDFUNDS (Q1)", [],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 2002 without lagged FEDFUNDS (All Quarters)
-# #     (results_2002_without_lagged_all, "IV 2002 Without Lagged FEDFUNDS (All Quarters)", [],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 2002 with lagged FEDFUNDS (Q1)
-# #     (results_2002_with_lagged_q1, "IV 2002 With Lagged FEDFUNDS (Q1)", ["FEDFUNDS_Lag1"],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"]),
-# #
-# #     # IV model for 2002 with lagged FEDFUNDS (All Quarters)
-# #     (results_2002_with_lagged_all, "IV 2002 With Lagged FEDFUNDS (All Quarters)", ["FEDFUNDS_Lag1"],
-# #      ["Inflation_Rate", "OutputGap"],
-# #      ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-# #       "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"])
-# # ]
 iv_models = [
-    # IV model for 1997 without lagged FEDFUNDS (Q1)
+    # IV 1997 Without Lagged FEDFUNDS (Q1)
     (
         results_1997_without_lagged_q1,
         "IV 1997 Without Lagged FEDFUNDS (Q1)",
         [],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Unemployment_1997_Lag1", "Unemployment_1997_Lag2", "Unemployment_1997_Lag3"]
     ),
 
-    # IV model for 1997 without lagged FEDFUNDS (All Quarters)
+    # IV 1997 Without Lagged FEDFUNDS (All Quarters)
     (
         results_1997_without_lagged_all,
         "IV 1997 Without Lagged FEDFUNDS (All Quarters)",
         [],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
+        ["Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Unemployment_1997_Lag1", "Unemployment_1997_Lag2", "Unemployment_1997_Lag3"]
     ),
 
-    # IV model for 1997 with lagged FEDFUNDS (Q1)
+    # IV 1997 With Lagged FEDFUNDS (Q1)
     (
         results_1997_with_lagged_q1,
         "IV 1997 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1"]
+        ["FedFunds_1997_Lag1"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Unemployment_1997_Lag1"]
     ),
 
-    # IV model for 1997 with lagged FEDFUNDS (All Quarters)
+    # IV 1997 With Lagged FEDFUNDS (All Quarters)
     (
         results_1997_with_lagged_all,
         "IV 1997 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
+        ["FedFunds_1997_Lag1"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "UNRATE_19970110"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Unemployment_1997_Lag1", "Unemployment_1997_Lag2", "Unemployment_1997_Lag3"]
     ),
 
-   # IV model for 2002 without lagged FEDFUNDS (Q1)
+    # IV 2002 Without Lagged FEDFUNDS (Q1)
     (
         results_2002_without_lagged_q1,
         "IV 2002 Without Lagged FEDFUNDS (Q1)",
         [],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
+        ["Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Unemployment_2002_Lag1", "Unemployment_2002_Lag2", "Unemployment_2002_Lag3"]
     ),
 
-    # IV model for 2002 without lagged FEDFUNDS (All Quarters)
+    # IV 2002 Without Lagged FEDFUNDS (All Quarters)
     (
-        results_2002_without_lagged_all, "IV 2002 Without Lagged FEDFUNDS (All Quarters)", [],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
+        results_2002_without_lagged_all,
+        "IV 2002 Without Lagged FEDFUNDS (All Quarters)",
+        [],
+        ["Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Unemployment_2002_Lag1", "Unemployment_2002_Lag2", "Unemployment_2002_Lag3"]
     ),
 
-    # IV model for 2002 with lagged FEDFUNDS (Q1)
+    # IV 2002 With Lagged FEDFUNDS (Q1)
     (
         results_2002_with_lagged_q1,
         "IV 2002 With Lagged FEDFUNDS (Q1)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1"]
+        ["FedFunds_2002_Lag1"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Unemployment_2002_Lag1"]
     ),
 
-    # IV model for 2002 with lagged FEDFUNDS (All Quarters)
+    # IV 2002 With Lagged FEDFUNDS (All Quarters)
     (
         results_2002_with_lagged_all,
         "IV 2002 With Lagged FEDFUNDS (All Quarters)",
-        ["FEDFUNDS_Lag1"],
-        ["Inflation_Rate", "OutputGap", "UNRATE"],
-        ["Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
-         "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3",
-         "Unemployment_Lag1", "Unemployment_Lag2", "Unemployment_Lag3"]
+        ["FedFunds_2002_Lag1"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "UNRATE_20020104"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Unemployment_2002_Lag1", "Unemployment_2002_Lag2", "Unemployment_2002_Lag3"]
     )
 ]
 
-
-# for i, model_tuple in enumerate(iv_models):
-#     print(f"Model {i}: {len(model_tuple)} elements")
 predictions = {}
 def evaluate_models(test_data, ols_models, iv_models):
     """
@@ -332,7 +316,7 @@ def evaluate_models(test_data, ols_models, iv_models):
         print(len(features))
         X_test = test_data[features]
         X_test = add_constant(X_test)  # Add constant if required
-        y_test = test_data["FEDFUNDS"]
+        y_test = test_data["FEDFUNDS_19970107"]
         print(len(y_test))
 
         # Predict and calculate metrics
@@ -363,7 +347,7 @@ def evaluate_models(test_data, ols_models, iv_models):
         print(f"Evaluating IV model: {model_name}")
         exog_test = add_constant(test_data[exog_features])  # Exogenous variables
         endog_test = test_data[endog_features]  # Endogenous variables
-        y_test = test_data["FEDFUNDS"]
+        y_test = test_data["FEDFUNDS_19970107"]
         print(exog_test.shape, endog_test.shape)
         print("#########################################################################")
 
@@ -428,22 +412,22 @@ print(model_comparison_results)
 # print(merged_data[['FEDFUNDS_19970107', 'FEDFUNDS_19970107', 'OutputGap_1997']].describe())
 # print(merged_test_data[['FEDFUNDS', 'Inflation_Rate', 'OutputGap']].describe())
 
-plt.figure(figsize=(10, 6))
-plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
-plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
-plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
-plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2007-2013 [Only Unemployment Rate]")
-plt.legend()
-plt.show()
-
-plt.figure(figsize=(10, 6))
-plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
-plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
-plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
-plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
-plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2007-2013 [Only Unemployment Rate]")
-plt.legend()
-plt.show()
+# plt.figure(figsize=(10, 6))
+# plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (1997)", alpha=0.6, color="pink")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+# plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2007-2013 [Only Unemployment Rate]")
+# plt.legend()
+# plt.show()
+#
+# plt.figure(figsize=(10, 6))
+# plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (IV)", alpha=0.6, color="purple")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 Without Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Excl Lagged FedFunds (OLS)", alpha=0.6, color="red")
+# plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (IV)", alpha=0.6, color="blue")
+# plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
+# plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2007-2013 [Only Unemployment Rate]")
+# plt.legend()
+# plt.show()

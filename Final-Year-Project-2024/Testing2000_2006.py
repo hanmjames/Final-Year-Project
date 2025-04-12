@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from statsmodels.api import OLS, add_constant
+from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from linearmodels.iv import IV2SLS
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
@@ -40,15 +40,6 @@ inflationTest = inflationTest[(inflationTest['observation_date'] >= start_date) 
 realGDPTest = realGDPTest[(realGDPTest['observation_date'] >= start_date) & (realGDPTest['observation_date'] <= end_date)]
 potGDPTest = potGDPTest[(potGDPTest['observation_date'] >= start_date) & (potGDPTest['observation_date'] <= end_date)]
 
-# print("Filtered Fed Funds Data:")
-# print(fedFundsTest.head())
-# print("\nFiltered Inflation Data:")
-# print(inflationTest.head())
-# print("\nFiltered Real GDP Data:")
-# print(realGDPTest.head())
-# print("\nFiltered Potential GDP Data:")
-# print(potGDPTest.head())
-
 inflationTest['Inflation_Rate'] = (
     (inflationTest['GDPDEF'] / inflationTest['GDPDEF'].shift(4) - 1) * 100
 )
@@ -70,11 +61,6 @@ fedFundsTest = fedFundsTest[fedFundsTest['observation_date'] >= "2000-01-01"]
 inflationTest = inflationTest[inflationTest['observation_date'] >= "2000-01-01"]
 merged_pot_gdp = merged_pot_gdp[merged_pot_gdp['observation_date'] >= "2000-01-01"]
 
-# print(inflationTest.columns)
-# print(inflationTest.head())
-# print(fedFundsTest.head())
-# print(merged_pot_gdp.head())
-
 # Merge all datasets into one dataframe
 merged_test_data = (
     fedFundsTest[['observation_date', 'FEDFUNDS', 'FEDFUNDS_Lag1', 'FEDFUNDS_Lag2', 'FEDFUNDS_Lag3']]
@@ -87,6 +73,19 @@ merged_test_data = (
 print("Merged Test Data:")
 print(merged_test_data.head())
 
+# Standardize selected columns
+standardizeCols = [
+    "FEDFUNDS", "FEDFUNDS_Lag1", "FEDFUNDS_Lag2", "FEDFUNDS_Lag3",
+    "Inflation_Rate", "Inflation_Rate_Lag1", "Inflation_Rate_Lag2", "Inflation_Rate_Lag3",
+    "OutputGap", "OutputGap_Lag1", "OutputGap_Lag2", "OutputGap_Lag3"
+]
+
+# Drop any NaNs before standardization
+merged_test_data.dropna(subset=standardizeCols, inplace=True)
+
+# Apply standardization
+scaler = StandardScaler()
+merged_test_data[standardizeCols] = scaler.fit_transform(merged_test_data[standardizeCols])
 
 # Adjust the features to use 2000–2006 lagged variables
 ols_models = [
@@ -232,7 +231,7 @@ def evaluate_models(test_data, ols_models, iv_models):
 
 
 model_comparison_results = evaluate_models(merged_test_data, ols_models, iv_models)
-print(model_comparison_results)
+print(model_comparison_results[0])
 
 def save_df_as_image(df, filename="TestingResults2000-2006.png"):
     # Create a Matplotlib figure
@@ -273,7 +272,7 @@ plt.plot(merged_test_data['observation_date'], predictions["IV 1997 With Lagged 
 plt.plot(merged_test_data['observation_date'], predictions["OLS 1997 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
 plt.title("Actual vs. Pred FedFunds Values (1997) Tested on 2000-2006")
 plt.legend()
-plt.show()
+# plt.show()
 
 plt.figure(figsize=(10, 6))
 plt.plot(merged_test_data['observation_date'], merged_test_data['FEDFUNDS'], label="Actual FedFunds Values (2002)", alpha=0.6, color="pink")
@@ -283,4 +282,4 @@ plt.plot(merged_test_data['observation_date'], predictions["IV 2002 With Lagged 
 plt.plot(merged_test_data['observation_date'], predictions["OLS 2002 With Lagged FEDFUNDS (All Quarters)"], label="Pred Vals Incl Lagged FedFunds (OLS)", alpha=0.6, color="orange")
 plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2000-2006")
 plt.legend()
-plt.show()
+# plt.show()

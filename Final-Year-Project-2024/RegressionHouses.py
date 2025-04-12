@@ -3,9 +3,11 @@ import numpy as np
 from statsmodels.api import OLS, add_constant
 from linearmodels.iv import IV2SLS
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 # Set pandas display option to show all columns
 pd.set_option('display.max_columns', None)
+pd.set_option('display.float_format', '{:.2f}'.format)
 
 # Load the separate datasets for real GDP, potential GDP, inflation, and federal funds rate
 real_gdp = pd.read_csv(r"C:\Users\hanma\Documents\GitHub\Final-Year-Project\Final-Year-Project-2024\RealGDP_1981to1996.csv")
@@ -81,6 +83,33 @@ merged_data_q1 = merged_data.loc[merged_data['observation_date'].dt.strftime('%m
 # Display merged_data_q1 to confirm the selection of Q1 only
 print("Filtered Data for Q1 (First Day of Each Year):")
 print(merged_data_q1)
+
+# Define columns to standardize
+standardize_cols = [
+    # 1997
+    "FEDFUNDS_19970107", "Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122",
+    "FedFunds_1997_Lag1",
+    "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+    "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+    "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3",
+
+    # 2002
+    "FEDFUNDS_20020108", "Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117",
+    "FedFunds_2002_Lag1",
+    "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+    "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+    "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"
+]
+
+# Drop rows with NaNs before standardization (safe practice before model fitting too)
+merged_data.dropna(subset=standardize_cols, inplace=True)
+merged_data_q1 = merged_data[merged_data['observation_date'].dt.strftime('%m-%d') == '01-01'].copy()
+
+# Standardize using sklearn
+scaler = StandardScaler()
+merged_data[standardize_cols] = scaler.fit_transform(merged_data[standardize_cols])
+merged_data_q1[standardize_cols] = scaler.transform(merged_data_q1[standardize_cols])
+
 
 # Function to save regression summary as image
 # def save_summary(summary, title, file_name):
@@ -661,3 +690,22 @@ metrics_df = pd.DataFrame(all_metrics)
 print(metrics_df)
 
 print(merged_data.columns)
+
+for ols in ols_models:
+    print(ols[-1])
+    print(ols[0].f_pvalue)
+
+for iv in iv_models:
+    print(iv[-1])
+    print(iv[0].f_statistic.pval)
+
+
+for iv in iv_models:
+    print(iv[-1])
+    print(iv[0].params)
+    print(iv[0].pvalues)
+
+for ols in ols_models:
+    print(ols[-1])
+    print(ols[0].params)
+    print(ols[0].pvalues)
