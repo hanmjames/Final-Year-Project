@@ -59,17 +59,3 @@ xRev = mergedDataset[['InflationRate', 'OutputGap', 'PresidentPartyRev', 'Inflat
 xRev = add_constant(xRev)
 politicalOLSRev = OLS(yRev, xRev).fit()
 print(politicalOLSRev.summary())
-
-pred1 = politicalOLS.predict(x)
-pred2 = politicalOLS2.predict(x2)
-pred3 = politicalOLS3.predict(x3)
-actual = mergedDataset['FEDFUNDS']
-
-plt.figure(figsize=(10, 6))
-plt.plot(mergedDataset['observation_date'], actual, label = "Actual FedFunds Values", color = "pink")
-plt.plot(mergedDataset["observation_date"], pred1, label = "All Political Variables", color = "red")
-plt.plot(mergedDataset["observation_date"], pred2, label = "Only Ruling Party Variable", color = "blue")
-plt.plot(mergedDataset["observation_date"], pred3, label = "Ruling Party and 2 Interaction Variables", color = "purple")
-
-
-# plt.show()

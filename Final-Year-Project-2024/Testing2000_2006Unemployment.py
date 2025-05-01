@@ -459,6 +459,7 @@ def display_correlation_for_models(test_data, ols_models, iv_models):
         plt.figure(figsize=(8, 6))
         sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
         plt.title(f"Correlation Heatmap - {model_name}")
+        plt.tight_layout()
         plt.show()
 
     for model, model_name, exog_features, endog_features, instruments in iv_models:
@@ -480,6 +481,7 @@ def display_correlation_for_models(test_data, ols_models, iv_models):
         plt.figure(figsize=(8, 6))
         sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
         plt.title(f"Correlation Heatmap - {model_name}")
+        plt.tight_layout()
         plt.show()
 
 

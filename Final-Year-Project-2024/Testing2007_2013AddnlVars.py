@@ -507,9 +507,10 @@ def display_correlation_for_models(test_data, ols_models, iv_models):
         print(corr_matrix)
 
         # Plot heatmap
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(10, 8))
         sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
         plt.title(f"Correlation Heatmap - {model_name}")
+        plt.tight_layout()
         plt.show()
 
     for model, model_name, exog_features, endog_features, instruments in iv_models:
@@ -528,11 +529,12 @@ def display_correlation_for_models(test_data, ols_models, iv_models):
         print(corr_matrix)
 
         # Plot heatmap
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(10, 8))
         sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
         plt.title(f"Correlation Heatmap - {model_name}")
+        plt.tight_layout()
         plt.show()
 
 
 # Call the function
-# display_correlation_for_models(merged_test_data, ols_models, iv_models)
+display_correlation_for_models(merged_test_data, ols_models, iv_models)

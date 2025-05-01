@@ -431,3 +431,26 @@ print(model_comparison_results)
 # plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2007-2013 [Only Unemployment Rate]")
 # plt.legend()
 # plt.show()
+
+# Define lagged variable names of interest
+laggedVars = [
+    'FedFunds_1997_Lag1',
+    'OutputGap_1997_Lag1', 'OutputGap_1997_Lag2', 'OutputGap_1997_Lag3',
+    'Inflation_Rate_1997_Lag1', 'Inflation_Rate_1997_Lag2', 'Inflation_Rate_1997_Lag3',
+    'Unemployment_1997_Lag1', 'Unemployment_1997_Lag2', 'Unemployment_1997_Lag3'
+]
+
+# Access the internal ._reg dictionary
+fs1997 = results_1997_with_lagged_all.first_stage._reg
+
+# Build dictionary of params filtered to laggedVars (intersection only)
+params1997 = {}
+for depVar in ['Inflation_Rate_1997', 'OutputGap_1997', 'UNRATE_19970110']:
+    allParams = fs1997[depVar]  # Already a Series
+    relevantParams = allParams[allParams.index.intersection(laggedVars)]
+    params1997[depVar] = relevantParams
+
+# Display
+for var, coefs in params1997.items():
+    print(f"\nCoefficients for {var} (first stage):\n")
+    print(coefs)

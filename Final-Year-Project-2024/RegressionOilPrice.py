@@ -620,83 +620,92 @@ ols_models = [
 iv_models = [
     # IV 1997 Without Lagged FEDFUNDS (First Quarter Only)
     (results_1997_without_lagged_q1,
-     train_data_q1[[]],  # Exogenous variables for training
+     train_data_q1[[]],
      train_data_q1[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for training
-     train_data_q1["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data_q1[[]],  # Exogenous variables for testing
+     train_data_q1["FEDFUNDS_19970107"],
+     test_data_q1[[]],
      test_data_q1[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_19970107"],  # Dependent variable for testing
+     test_data_q1["FEDFUNDS_19970107"],
      "IV 1997 Without Lagged FEDFUNDS (Q1)"
      ),
 
     # IV 1997 Without Lagged FEDFUNDS (All Quarters)
     (results_1997_without_lagged_all,
-     train_data[[]],  # Exogenous variables for training
+     train_data[[]],
      train_data[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for training
-     train_data["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data[[]],  # Exogenous variables for testing
+     train_data["FEDFUNDS_19970107"],
+     test_data[[]],
      test_data[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for testing
-     test_data["FEDFUNDS_19970107"],  # Dependent variable for testing
+     test_data["FEDFUNDS_19970107"],
      "IV 1997 Without Lagged FEDFUNDS (All Quarters)"
      ),
 
     # IV 1997 With Lagged FEDFUNDS (First Quarter Only)
     (results_1997_with_lagged_q1,
-     train_data_q1[["FedFunds_1997_Lag1"]],  # Exogenous variables for training
+     train_data_q1[["FedFunds_1997_Lag1"]],
      train_data_q1[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for training
-     train_data_q1["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data_q1[["FedFunds_1997_Lag1"]],  # Exogenous variables for testing
+     train_data_q1["FEDFUNDS_19970107"],
+     test_data_q1[["FedFunds_1997_Lag1"]],
      test_data_q1[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_19970107"],  # Dependent variable for testing
+     test_data_q1["FEDFUNDS_19970107"],
      "IV 1997 With Lagged FEDFUNDS (Q1)"
      ),
 
     # IV 1997 With Lagged FEDFUNDS (All Quarters)
     (results_1997_with_lagged_all,
-     train_data[["FedFunds_1997_Lag1"]],  # Exogenous variables for training
+     train_data[["FedFunds_1997_Lag1"]],
      train_data[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for training
-     train_data["FEDFUNDS_19970107"],  # Dependent variable for training
-     test_data[["FedFunds_1997_Lag1"]],  # Exogenous variables for testing
+     train_data["FEDFUNDS_19970107"],
+     test_data[["FedFunds_1997_Lag1"]],
      test_data[["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]],
-     # Endogenous variables for testing
-     test_data["FEDFUNDS_19970107"],  # Dependent variable for testing
+     test_data["FEDFUNDS_19970107"],
      "IV 1997 With Lagged FEDFUNDS (All Quarters)"
      ),
 
     # IV 2002 Without Lagged FEDFUNDS (First Quarter Only)
     (results_2002_without_lagged_q1,
-     train_data_q1[[]],  # Exogenous variables for training
+     train_data_q1[[]],
      train_data_q1[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
-     # Endogenous variables for training
-     train_data_q1["FEDFUNDS_20020108"],  # Dependent variable for training
-     test_data_q1[[]],  # Exogenous variables for testing
+     train_data_q1["FEDFUNDS_20020108"],
+     test_data_q1[[]],
      test_data_q1[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
-     # Endogenous variables for testing
-     test_data_q1["FEDFUNDS_20020108"],  # Dependent variable for testing
+     test_data_q1["FEDFUNDS_20020108"],
      "IV 2002 Without Lagged FEDFUNDS (Q1)"
      ),
 
     # IV 2002 Without Lagged FEDFUNDS (All Quarters)
     (results_2002_without_lagged_all,
-     train_data[[]],  # Exogenous variables for training
+     train_data[[]],
      train_data[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
-     # Endogenous variables for training
-     train_data["FEDFUNDS_20020108"],  # Dependent variable for training
-     test_data[[]],  # Exogenous variables for testing
+     train_data["FEDFUNDS_20020108"],
+     test_data[[]],
      test_data[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
-     # Endogenous variables for testing
-     test_data["FEDFUNDS_20020108"],  # Dependent variable for testing
+     test_data["FEDFUNDS_20020108"],
      "IV 2002 Without Lagged FEDFUNDS (All Quarters)"
+     ),
+
+    # IV 2002 With Lagged FEDFUNDS (First Quarter Only)
+    (results_2002_with_lagged_q1,
+     train_data_q1[["FedFunds_2002_Lag1"]],
+     train_data_q1[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
+     train_data_q1["FEDFUNDS_20020108"],
+     test_data_q1[["FedFunds_2002_Lag1"]],
+     test_data_q1[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
+     test_data_q1["FEDFUNDS_20020108"],
+     "IV 2002 With Lagged FEDFUNDS (Q1)"
+     ),
+
+    # IV 2002 With Lagged FEDFUNDS (All Quarters)
+    (results_2002_with_lagged_all,
+     train_data[["FedFunds_2002_Lag1"]],
+     train_data[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
+     train_data["FEDFUNDS_20020108"],
+     test_data[["FedFunds_2002_Lag1"]],
+     test_data[["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]],
+     test_data["FEDFUNDS_20020108"],
+     "IV 2002 With Lagged FEDFUNDS (All Quarters)"
      )
 ]
-
 
 all_metrics = []
 
@@ -715,13 +724,42 @@ metrics_df = pd.DataFrame(all_metrics)
 # Displaying the DataFrame
 print(metrics_df)
 
-print(merged_data.columns)
+# print(merged_data.columns)
+#
+# for ols in ols_models:
+#     print(ols[-1])
+#     print(ols[0].params)
+#     print(ols[0].pvalues)
+# for iv in iv_models:
+#     print(iv[-1])
+#     print(iv[0].params)
+#     print(iv[0].pvalues)
+def format_significance(pval):
+    if pval <= 0.001:
+        return ' (***)'
+    elif pval <= 0.01:
+        return ' (**)'
+    elif pval <= 0.05:
+        return ' (*)'
+    else:
+        return ' (ns)'
 
-for ols in ols_models:
-    print(ols[-1])
-    print(ols[0].params)
-    print(ols[0].pvalues)
-for iv in iv_models:
-    print(iv[-1])
-    print(iv[0].params)
-    print(iv[0].pvalues)
+# Print coefficients for OLS models
+print("======== OLS COEFFICIENTS ========")
+for model, _, _, _, _, name in ols_models:
+    print(f"\n{name}")
+    for var in model.params.index:
+        coef = model.params[var]
+        pval = model.pvalues[var]
+        sig = format_significance(pval)
+        print(f"{var}: {coef:.2f}{sig}")
+
+# Print coefficients for IV models
+print("\n======== IV COEFFICIENTS ========")
+for model, _, _, _, _, _, _, name in iv_models:
+    print(f"\n{name}")
+    for var in model.params.index:
+        coef = model.params[var]
+        pval = model.pvalues[var]
+        sig = format_significance(pval)
+        print(f"{var}: {coef:.2f}{sig}")

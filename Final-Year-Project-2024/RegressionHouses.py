@@ -686,26 +686,116 @@ for model, X_train_exog, X_train_endog, y_train, X_test_exog, X_test_endog, y_te
 # Creating a DataFrame for the metrics
 metrics_df = pd.DataFrame(all_metrics)
 
-# Displaying the DataFrame
-print(metrics_df)
+# # Displaying the DataFrame
+# print(metrics_df)
+#
+# print(merged_data.columns)
+#
+# for ols in ols_models:
+#     print(ols[-1])
+#     print(ols[0].f_pvalue)
+#
+# for iv in iv_models:
+#     print(iv[-1])
+#     print(iv[0].f_statistic.pval)
+#
+#
+# for iv in iv_models:
+#     print(iv[-1])
+#     print(iv[0].params)
+#     print(iv[0].pvalues)
+#
+# for ols in ols_models:
+#     print(ols[-1])
+#     print(ols[0].params)
+#     print(ols[0].pvalues)
 
-print(merged_data.columns)
-
-for ols in ols_models:
-    print(ols[-1])
-    print(ols[0].f_pvalue)
-
-for iv in iv_models:
-    print(iv[-1])
-    print(iv[0].f_statistic.pval)
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
-for iv in iv_models:
-    print(iv[-1])
-    print(iv[0].params)
-    print(iv[0].pvalues)
+def display_correlation_for_models(test_data, ols_models, iv_models):
+    """
+    Display correlation heatmaps for predictors of each OLS and IV model.
+    """
+    for model, model_name, features in ols_models:
+        print(f"\nCorrelation Matrix for OLS Model: {model_name}")
 
-for ols in ols_models:
-    print(ols[-1])
-    print(ols[0].params)
-    print(ols[0].pvalues)
+        # Filter relevant predictors
+        predictors_df = test_data[features]
+
+        # Calculate correlation matrix
+        corr_matrix = predictors_df.corr()
+
+        # Display correlation matrix
+        print(corr_matrix)
+
+        # Plot heatmap
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+        plt.title(f"Correlation Heatmap - {model_name}")
+        plt.tight_layout()
+        plt.show()
+
+    for model, model_name, exog_features, endog_features, instruments in iv_models:
+        print(f"\nCorrelation Matrix for IV Model: {model_name}")
+
+        # Combine exogenous, endogenous, and instrument features
+        all_features = exog_features + endog_features + instruments
+
+        # Filter relevant predictors
+        predictors_df = test_data[all_features]
+
+        # Calculate correlation matrix
+        corr_matrix = predictors_df.corr()
+
+        # Display correlation matrix
+        print(corr_matrix)
+
+        # Plot heatmap
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+        plt.title(f"Correlation Heatmap - {model_name}")
+        plt.tight_layout()
+        plt.show()
+
+
+ols_models_corr = [
+    (ols_1997_without_lag_all, "OLS 1997 Without Lagged FEDFUNDS (All Quarters)",
+     ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"]),
+    (ols_1997_with_lag_all, "OLS 1997 With Lagged FEDFUNDS (All Quarters)",
+     ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"]),
+    (ols_2002_without_lag_all, "OLS 2002 Without Lagged FEDFUNDS (All Quarters)",
+     ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"]),
+    (ols_2002_with_lag_all, "OLS 2002 With Lagged FEDFUNDS (All Quarters)",
+     ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"]),
+]
+iv_models_corr = [
+    (results_1997_without_lagged_all, "IV 1997 Without Lagged FEDFUNDS (All Quarters)",
+     [], ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"],
+     ["OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+      "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+      "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3"]),
+
+    (results_1997_with_lagged_all, "IV 1997 With Lagged FEDFUNDS (All Quarters)",
+     ["FedFunds_1997_Lag1"], ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122"],
+     ["OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+      "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+      "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3"]),
+
+    (results_2002_without_lagged_all, "IV 2002 Without Lagged FEDFUNDS (All Quarters)",
+     [], ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"],
+     ["OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+      "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+      "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"]),
+
+    (results_2002_with_lagged_all, "IV 2002 With Lagged FEDFUNDS (All Quarters)",
+     ["FedFunds_2002_Lag1"], ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117"],
+     ["OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+      "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+      "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"]),
+]
+
+# Call the function
+display_correlation_for_models(merged_data, ols_models_corr, iv_models_corr)

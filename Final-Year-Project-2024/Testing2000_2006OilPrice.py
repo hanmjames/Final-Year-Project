@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
-from statsmodels.api import OLS, add_constant
+from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from linearmodels.iv import IV2SLS
-import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 pd.set_option('display.float_format', '{:.2f}'.format)
 

@@ -4,6 +4,8 @@ from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 pd.set_option('display.max_columns', None)
 
 from RegressionAnalysis import (
@@ -289,3 +291,13 @@ def save_df_as_image(df, filename="TestingResults2007-2013.png"):
 # plt.title("Actual vs. Pred FedFunds Values (2002) Tested on 2007-2013")
 # plt.legend()
 # plt.show()
+def compute_vif(df, features):
+    X = add_constant(df[features])
+    vif_df = pd.DataFrame()
+    vif_df["Variable"] = X.columns
+    vif_df["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+    return vif_df
+
+# Example: OLS 1997 With Lagged FedFunds (All Quarters)
+vif_result = compute_vif(merged_test_data, ["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"])
+print(vif_result)

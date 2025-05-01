@@ -437,4 +437,215 @@ print(model_comparison_results)
 # plt.legend()
 # plt.show()
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+from statsmodels.api import add_constant
 
+def display_correlation_for_models(test_data, ols_models, iv_models):
+    """
+    Display correlation heatmaps for predictors of each OLS and IV model.
+    """
+    # OLS Models
+    for model, model_name, features in ols_models:
+        print(f"\nCorrelation Matrix for OLS Model: {model_name}")
+        try:
+            predictors_df = test_data[features]
+            corr_matrix = predictors_df.corr()
+            print(corr_matrix)
+
+            plt.figure(figsize=(8, 6))
+            sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+            plt.title(f"Correlation Heatmap - {model_name}")
+            plt.tight_layout()
+            plt.show()
+
+        except KeyError as e:
+            print(f"Missing columns for {model_name}: {e}")
+
+    # IV Models
+    for model, model_name, exog_features, endog_features, instruments in iv_models:
+        print(f"\nCorrelation Matrix for IV Model: {model_name}")
+        try:
+            all_features = exog_features + endog_features + instruments
+            predictors_df = test_data[all_features]
+            corr_matrix = predictors_df.corr()
+            print(corr_matrix)
+
+            plt.figure(figsize=(10, 7))
+            sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+            plt.title(f"Correlation Heatmap - {model_name}")
+            plt.tight_layout()
+            plt.show()
+
+        except KeyError as e:
+            print(f"Missing columns for {model_name}: {e}")
+
+ols_models = [
+    (
+        ols_1997_without_lag_q1,
+        "OLS 1997 Without Lagged FEDFUNDS (Q1)",
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]
+    ),
+    (
+        ols_1997_without_lag_all,
+        "OLS 1997 Without Lagged FEDFUNDS (All Quarters)",
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]
+    ),
+    (
+        ols_1997_with_lag_q1,
+        "OLS 1997 With Lagged FEDFUNDS (Q1)",
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]
+    ),
+    (
+        ols_1997_with_lag_all,
+        "OLS 1997 With Lagged FEDFUNDS (All Quarters)",
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"]
+    ),
+    (
+        ols_2002_without_lag_q1,
+        "OLS 2002 Without Lagged FEDFUNDS (Q1)",
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]
+    ),
+    (
+        ols_2002_without_lag_all,
+        "OLS 2002 Without Lagged FEDFUNDS (All Quarters)",
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]
+    ),
+    (
+        ols_2002_with_lag_q1,
+        "OLS 2002 With Lagged FEDFUNDS (Q1)",
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]
+    ),
+    (
+        ols_2002_with_lag_all,
+        "OLS 2002 With Lagged FEDFUNDS (All Quarters)",
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"]
+    )
+]
+
+iv_models = [
+    (
+        results_1997_without_lagged_q1,
+        "IV 1997 Without Lagged FEDFUNDS (Q1)",
+        [],
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Oil_Price_1997_Lag1", "Oil_Price_1997_Lag2", "Oil_Price_1997_Lag3"]
+    ),
+    (
+        results_1997_without_lagged_all,
+        "IV 1997 Without Lagged FEDFUNDS (All Quarters)",
+        [],
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Oil_Price_1997_Lag1", "Oil_Price_1997_Lag2", "Oil_Price_1997_Lag3"]
+    ),
+    (
+        results_1997_with_lagged_q1,
+        "IV 1997 With Lagged FEDFUNDS (Q1)",
+        ["FedFunds_1997_Lag1"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Oil_Price_1997_Lag1"]
+    ),
+    (
+        results_1997_with_lagged_all,
+        "IV 1997 With Lagged FEDFUNDS (All Quarters)",
+        ["FedFunds_1997_Lag1"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
+        ["Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
+         "Oil_Price_1997_Lag1", "Oil_Price_1997_Lag2", "Oil_Price_1997_Lag3"]
+    ),
+    (
+        results_2002_without_lagged_q1,
+        "IV 2002 Without Lagged FEDFUNDS (Q1)",
+        [],
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Oil_Price_2002_Lag1", "Oil_Price_2002_Lag2", "Oil_Price_2002_Lag3"]
+    ),
+    (
+        results_2002_without_lagged_all,
+        "IV 2002 Without Lagged FEDFUNDS (All Quarters)",
+        [],
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Oil_Price_2002_Lag1", "Oil_Price_2002_Lag2", "Oil_Price_2002_Lag3"]
+    ),
+    (
+        results_2002_with_lagged_q1,
+        "IV 2002 With Lagged FEDFUNDS (Q1)",
+        ["FedFunds_2002_Lag1"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Oil_Price_2002_Lag1"]
+    ),
+    (
+        results_2002_with_lagged_all,
+        "IV 2002 With Lagged FEDFUNDS (All Quarters)",
+        ["FedFunds_2002_Lag1"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
+        ["Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
+         "Oil_Price_2002_Lag1", "Oil_Price_2002_Lag2", "Oil_Price_2002_Lag3"]
+    )
+]
+
+display_correlation_for_models(merged_test_data, ols_models, iv_models)
+
+def plot_actual_vs_predicted(test_data, predictions, model_names, title_suffix):
+    """
+    Plot Actual vs Predicted FedFunds values for selected models.
+
+    Args:
+        test_data (pd.DataFrame): The merged test dataset.
+        predictions (dict): Dictionary of model names to predicted series.
+        model_names (list): List of model names to include in the plot.
+        title_suffix (str): Suffix to append to the plot title.
+    """
+    plt.figure(figsize=(12, 6))
+    plt.plot(test_data['observation_date'], test_data['FEDFUNDS_19970107'], label='Actual FedFunds Rate', linewidth=2, color='black')
+
+    for model_name in model_names:
+        if model_name in predictions:
+            plt.plot(test_data['observation_date'], predictions[model_name], label=model_name, alpha=0.7)
+
+    plt.title(f'Actual vs Predicted FedFunds Rate {title_suffix}')
+    plt.xlabel("Date")
+    plt.ylabel("FedFunds Rate")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(True)
+    plt.show()
+
+plot_actual_vs_predicted(
+    merged_test_data,
+    predictions,
+    [
+        "OLS 1997 Without Lagged FEDFUNDS (All Quarters)",
+        "OLS 1997 With Lagged FEDFUNDS (All Quarters)",
+        "IV 1997 Without Lagged FEDFUNDS (All Quarters)",
+        "IV 1997 With Lagged FEDFUNDS (All Quarters)"
+    ],
+    "(1997 Models, 2007–2013 Test)"
+)
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+def compute_vif(df, features):
+    X = add_constant(df[features])
+    vif_df = pd.DataFrame()
+    vif_df["Variable"] = X.columns
+    vif_df["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+    return vif_df
+
+# Example: OLS 1997 With Lagged FedFunds (All Quarters)
+vif_result = compute_vif(merged_test_data, ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"])
+print(vif_result)

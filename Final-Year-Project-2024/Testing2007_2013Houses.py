@@ -1,9 +1,8 @@
 import pandas as pd
 import numpy as np
-from statsmodels.api import OLS, add_constant
+from sklearn.preprocessing import StandardScaler
+from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from linearmodels.iv import IV2SLS
-import matplotlib.pyplot as plt
 
 from Testing2000_2006OilPrice import predictions
 
@@ -149,10 +148,11 @@ standardize_cols = [
     "HOUST_20020117", "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"
 ]
 
-standardize_cols = scaler.feature_names_in_.tolist()
-merged_test_data = merged_test_data.dropna(subset=standardize_cols)
-merged_test_data[standardize_cols] = scaler.transform(merged_test_data[standardize_cols])
-
+# standardize_cols = scaler.feature_names_in_.tolist()
+# merged_test_data = merged_test_data.dropna(subset=standardize_cols)
+# merged_test_data[standardize_cols] = scaler.transform(merged_test_data[standardize_cols])
+scaler = StandardScaler()
+merged_test_data[standardize_cols] = scaler.fit_transform(merged_test_data[standardize_cols])
 
 ols_models = [
     (

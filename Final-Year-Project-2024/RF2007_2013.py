@@ -275,3 +275,90 @@ print("\nOOB Results (Without Lagged FedFunds):")
 print(f"R²: {rf_oob_without.oob_score_:.4f}")
 print(f"MAE: {mean_absolute_error(y_test_actual, rf_oob_without.oob_prediction_):.4f}")
 print(f"RMSE: {np.sqrt(mean_squared_error(y_test_actual, rf_oob_without.oob_prediction_)):.4f}")
+
+# ✅ Rebuild full regression dataset with expanded date range
+start_date_extended = '2000-01-01'
+end_date = '2013-12-31'
+
+# Refilter base data to include longer history
+fedFundsExtended = pd.read_csv("FedfundsTest.csv")
+inflationExtended = pd.read_csv("InflationTest.csv")
+realGDPExtended = pd.read_csv("RealGDPTest.csv")
+potGDPExtended = pd.read_csv("PotGDPTest.csv")
+
+fedFundsExtended['observation_date'] = pd.to_datetime(fedFundsExtended['observation_date'])
+inflationExtended['observation_date'] = pd.to_datetime(inflationExtended['observation_date'])
+realGDPExtended['observation_date'] = pd.to_datetime(realGDPExtended['observation_date'])
+potGDPExtended['observation_date'] = pd.to_datetime(potGDPExtended['observation_date'])
+
+# Apply full range filter
+fedFundsExtended = fedFundsExtended[(fedFundsExtended['observation_date'] >= start_date_extended) & (fedFundsExtended['observation_date'] <= end_date)]
+inflationExtended = inflationExtended[(inflationExtended['observation_date'] >= start_date_extended) & (inflationExtended['observation_date'] <= end_date)]
+realGDPExtended = realGDPExtended[(realGDPExtended['observation_date'] >= start_date_extended) & (realGDPExtended['observation_date'] <= end_date)]
+potGDPExtended = potGDPExtended[(potGDPExtended['observation_date'] >= start_date_extended) & (potGDPExtended['observation_date'] <= end_date)]
+
+# Recalculate Inflation and Output Gap
+inflationExtended['InflationRate'] = (inflationExtended['GDPDEF'] / inflationExtended['GDPDEF'].shift(4) - 1) * 100
+mergedGap = potGDPExtended[['observation_date', 'GDPPOT']].merge(realGDPExtended[['observation_date', 'GDPC1']], on='observation_date')
+mergedGap['OutputGap'] = 100 * (np.log(mergedGap['GDPC1']) - np.log(mergedGap['GDPPOT']))
+
+# Merge all into one regression dataset
+regression_data = fedFundsExtended[['observation_date', 'FEDFUNDS']].merge(
+    inflationExtended[['observation_date', 'InflationRate']], on='observation_date'
+).merge(
+    mergedGap[['observation_date', 'OutputGap']], on='observation_date'
+)
+
+# Drop NaNs from lagging operations
+regression_data.dropna(inplace=True)
+
+# Set datetime index and sort
+regression_data.set_index('observation_date', inplace=True)
+regression_data.sort_index(inplace=True)
+
+# ✅ Rolling OLS Coefficient Estimation
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+window_size = 24  # 6 years of quarterly data
+coefs = []
+dates = []
+
+for i in range(window_size, len(regression_data)):
+    window = regression_data.iloc[i - window_size:i]
+    X = sm.add_constant(window[['InflationRate', 'OutputGap']])
+    y = window['FEDFUNDS']
+    model = sm.OLS(y, X).fit()
+    coefs.append(model.params)
+    dates.append(regression_data.index[i])
+
+# ✅ Convert to DataFrame for plotting
+coef_df = pd.DataFrame(coefs, index=dates)
+
+# ✅ Plot Coefficient Trends
+plt.figure(figsize=(10, 6))
+plt.plot(coef_df.index, coef_df['InflationRate'], label='InflationRate Coef')
+plt.plot(coef_df.index, coef_df['OutputGap'], label='OutputGap Coef')
+plt.axvline(pd.to_datetime('2008-01-01'), color='red', linestyle='--', label='2008')
+plt.title('Rolling OLS Coefficients (24-Quarter Window)')
+plt.xlabel('Date')
+plt.ylabel('Coefficient')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+#
+# pred1 = politicalOLS.predict(x)
+# pred2 = politicalOLS2.predict(x2)
+# pred3 = politicalOLS3.predict(x3)
+# actual = mergedDataset['FEDFUNDS']
+#
+# plt.figure(figsize=(10, 6))
+# plt.plot(mergedDataset['observation_date'], actual, label = "Actual FedFunds Values", color = "pink")
+# plt.plot(mergedDataset["observation_date"], pred1, label = "All Political Variables", color = "red")
+# plt.plot(mergedDataset["observation_date"], pred2, label = "Only Ruling Party Variable", color = "blue")
+# plt.plot(mergedDataset["observation_date"], pred3, label = "Ruling Party and 2 Interaction Variables", color = "purple")
+#
+#
+# plt.show()

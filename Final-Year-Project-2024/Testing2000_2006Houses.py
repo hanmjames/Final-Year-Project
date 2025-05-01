@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from statsmodels.api import OLS, add_constant
+from sklearn.preprocessing import StandardScaler
+from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 pd.set_option('display.max_columns', None)
 pd.set_option('display.float_format', '{:.2f}'.format)
@@ -154,9 +155,12 @@ standardize_cols = [
     "HOUST_20020117", "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3"
 ]
 
-standardize_cols = scaler.feature_names_in_.tolist()
-merged_test_data = merged_test_data.dropna(subset=standardize_cols)
-merged_test_data[standardize_cols] = scaler.transform(merged_test_data[standardize_cols])
+# standardize_cols = scaler.feature_names_in_.tolist()
+# merged_test_data = merged_test_data.dropna(subset=standardize_cols)
+# merged_test_data[standardize_cols] = scaler.transform(merged_test_data[standardize_cols])
+
+scaler = StandardScaler()
+merged_test_data[standardize_cols] = scaler.fit_transform(merged_test_data[standardize_cols])
 
 
 # # Adjust the features to use 2000–2006 lagged variables
@@ -480,4 +484,4 @@ def display_correlation_for_models(test_data, ols_models, iv_models):
 
 
 # Call the function
-# display_correlation_for_models(merged_test_data, ols_models, iv_models)
+display_correlation_for_models(merged_test_data, ols_models, iv_models)
