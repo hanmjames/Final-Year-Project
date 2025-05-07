@@ -490,90 +490,105 @@ for model, X_train_exog, X_train_endog, y_train, X_test_exog, X_test_endog, y_te
     allMetrics.append(calculateMetricsIV(model, X_train_exog, X_train_endog, y_train, X_test_exog, X_test_endog, y_test, model_name))
 
 metricsDf = pd.DataFrame(allMetrics)
+print("All Metrics OLS and IV:")
 print(metricsDf)
+
+
+def runOLSBootstrapOOB(fullData, yCol, xCols, label, random_state):
+    sample = resample(fullData, replace=True, n_samples=len(fullData), random_state=random_state)
+    oob_idx = fullData.index.difference(sample.index)
+    oob_data = fullData.loc[oob_idx]
+    if oob_data.empty:
+        return {"Model": label, "OOB RMSE": np.nan, "OOB MAE": np.nan}
+    X_train = add_constant(sample[xCols])
+    y_train = sample[yCol]
+    model = OLS(y_train, X_train).fit()
+    X_oob = add_constant(oob_data[xCols])
+    y_oob = oob_data[yCol]
+    y_pred_oob = model.predict(X_oob)
+    return {
+        "Model": label,
+        "OOB RMSE": np.sqrt(mean_squared_error(y_oob, y_pred_oob)),
+        "OOB MAE": mean_absolute_error(y_oob, y_pred_oob)
+    }
+
+def runIVBootstrapOOB(fullData, yCol, exogCols, endogCols, instrCols, label, random_state):
+    sample = resample(fullData, replace=True, n_samples=len(fullData), random_state=random_state)
+    oob_idx = fullData.index.difference(sample.index)
+    oob_data = fullData.loc[oob_idx]
+    if oob_data.empty:
+        return {"Model": label, "OOB RMSE": np.nan, "OOB MAE": np.nan}
+    y_train = sample[yCol]
+    exog_train = add_constant(sample[exogCols]) if exogCols else add_constant(pd.DataFrame(index=sample.index))
+    endog_train = sample[endogCols]
+    instr_train = sample[instrCols]
+    model = IV2SLS(y_train, exog_train, endog_train, instr_train).fit()
+    y_oob = oob_data[yCol]
+    exog_oob = add_constant(oob_data[exogCols]) if exogCols else add_constant(pd.DataFrame(index=oob_data.index))
+    endog_oob = oob_data[endogCols]
+    try:
+        y_pred_oob = model.predict(exog=exog_oob, endog=endog_oob)
+        return {
+            "Model": label,
+            "OOB RMSE": np.sqrt(mean_squared_error(y_oob, y_pred_oob)),
+            "OOB MAE": mean_absolute_error(y_oob, y_pred_oob)
+        }
+    except:
+        return {"Model": label, "OOB RMSE": np.nan, "OOB MAE": np.nan}
+
 
 nIterations = 1000
 resultsList = []
 
 for i in range(nIterations):
-    sample = resample(mergedData, replace=True, n_samples=len(mergedData), random_state=i)
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_19970107",
+        ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
+        "OLS 1997 Without Lag", i))
 
-    def runOLSBootstrap(df, yCol, xCols, label):
-        x = add_constant(df[xCols])
-        y = df[yCol]
-        model = OLS(y, x).fit()
-        yPred = model.predict(x)
-        return {
-            "Model": label,
-            "R-squared": model.rsquared,
-            "Adj. R-squared": model.rsquared_adj,
-            "RMSE": np.sqrt(mean_squared_error(y, yPred)),
-            "MAE": mean_absolute_error(y, yPred)
-        }
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_19970107",
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
+        "OLS 1997 With Lag", i))
 
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_19970107", ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"], "OLS 1997 Without Lag"))
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_19970107", ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"], "OLS 1997 With Lag"))
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_20020108", ["Inflation_Rate_2002", "OutputGap_1997", "OILPRICE_19970303"], "OLS 2002 Without Lag"))
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_20020108", ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_1997", "OILPRICE_19970303"], "OLS 2002 With Lag"))
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_20020108",
+        ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
+        "OLS 2002 Without Lag", i))
 
-    def runIVBootstrap(df, yCol, exogCols, endogCols, instrCols, label):
-        y = df[yCol]
-        exog = add_constant(df[exogCols]) if exogCols else add_constant(pd.DataFrame(index=df.index))
-        endog = df[endogCols]
-        instr = df[instrCols]
-        model = IV2SLS(y, exog, endog, instr).fit()
-        yPred = model.fitted_values
-        return {
-             "Model": label,
-            "R-squared": model.rsquared,
-            "Adj. R-squared": np.nan,
-            "RMSE": np.sqrt(mean_squared_error(y, yPred)),
-            "MAE": mean_absolute_error(y, yPred)
-        }
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_20020108",
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
+        "OLS 2002 With Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_19970107",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_19970107",
         [],
         ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
         ["OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
          "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
          "Oil_Price_1997_Lag1", "Oil_Price_1997_Lag2", "Oil_Price_1997_Lag3"],
-        "IV 1997 Without Lag"
-    ))
+        "IV 1997 Without Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_19970107",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_19970107",
         ["FedFunds_1997_Lag1"],
         ["Inflation_Rate_1997", "OutputGap_1997", "OILPRICE_19970303"],
         ["OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
          "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
          "Oil_Price_1997_Lag1", "Oil_Price_1997_Lag2", "Oil_Price_1997_Lag3"],
-        "IV 1997 With Lag"
-    ))
+        "IV 1997 With Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_20020108",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_20020108",
         [],
         ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
         ["OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
          "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
          "Oil_Price_2002_Lag1", "Oil_Price_2002_Lag2", "Oil_Price_2002_Lag3"],
-        "IV 2002 Without Lag"
-    ))
+        "IV 2002 Without Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_20020108",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_20020108",
         ["FedFunds_2002_Lag1"],
         ["Inflation_Rate_2002", "OutputGap_2002", "OILPRICE_20020102"],
         ["OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
          "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
          "Oil_Price_2002_Lag1", "Oil_Price_2002_Lag2", "Oil_Price_2002_Lag3"],
-        "IV 2002 With Lag"
-    ))
+        "IV 2002 With Lag", i))
+
 
 bootstrapDf = pd.DataFrame(resultsList)
 bootstrapSummary = bootstrapDf.groupby("Model").agg(["mean", "std"])

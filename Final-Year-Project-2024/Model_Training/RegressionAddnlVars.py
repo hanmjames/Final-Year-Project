@@ -12,12 +12,25 @@ from sklearn.utils import resample
 pd.set_option('display.max_columns', None)
 
 realGDP = pd.read_csv(r"../Training_and_Testing_Data/RealGDP_1981to1996.csv")
-potGDP= pd.read_csv(r"../Training_and_Testing_Data/PotGDP_1981to1996.csv")
+realGDP['observation_date'] = pd.to_datetime(realGDP['observation_date'], format='%d/%m/%Y')
+
+potGDP = pd.read_csv(r"../Training_and_Testing_Data/PotGDP_1981to1996.csv")
+potGDP['observation_date'] = pd.to_datetime(potGDP['observation_date'], format='%d/%m/%Y')
+
 inflation = pd.read_csv(r"../Training_and_Testing_Data/Inflation_1981to1996.csv")
+inflation['observation_date'] = pd.to_datetime(inflation['observation_date'], format='%d/%m/%Y')
+
 fedFunds = pd.read_csv(r"../Training_and_Testing_Data/Fedfunds_1981to1996.csv")
+fedFunds['observation_date'] = pd.to_datetime(fedFunds['observation_date'], format='%d/%m/%Y')
+
 oilPrices = pd.read_csv(r"../Training_and_Testing_Data/OilPrice_Quarterly.csv")
+oilPrices['observation_date'] = pd.to_datetime(oilPrices['observation_date'], format='%d/%m/%Y')
+
 unemploymentRates = pd.read_csv(r"../Training_and_Testing_Data/UnemploymentRate_Quarterly.csv")
+unemploymentRates['observation_date'] = pd.to_datetime(unemploymentRates['observation_date'], format='%d/%m/%Y')
+
 housing = pd.read_csv(r"../Training_and_Testing_Data/Housing_Quarterly.csv")
+housing['observation_date'] = pd.to_datetime(housing['observation_date'], format='%d/%m/%Y')
 
 oilPrices = oilPrices[pd.to_datetime(oilPrices['observation_date']) >= '1970-01-01']
 unemploymentRates = unemploymentRates[pd.to_datetime(unemploymentRates['observation_date']) >= '1970-01-01']
@@ -32,7 +45,7 @@ mergedData = (
     .merge(unemploymentRates, on="observation_date")
 )
 
-mergedData['observation_date'] = pd.to_datetime(mergedData['observation_date'])
+mergedData['observation_date'] = pd.to_datetime(mergedData['observation_date'], dayfirst= True, errors='coerce')
 mergedData['Inflation_Rate_1997'] = (
     (mergedData['GDPDEF_19970131'] / mergedData['GDPDEF_19970131'].shift(4) - 1) * 100
 )
@@ -63,6 +76,7 @@ for lag in range(1, 4):
 mergedData = mergedData[(mergedData['observation_date'] >= '1981-01-01') & (mergedData['observation_date'] <= '1996-12-31')]
 mergedData.reset_index(drop=True, inplace=True)
 
+print(mergedData.head())
 standardizeCols = [
     "FEDFUNDS_19970107", "Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122",
     "FedFunds_1997_Lag1",
@@ -531,87 +545,106 @@ for model, X_trainExog, X_train_endog, y_train, X_testExog, X_test_endog, y_test
     allMetrics.append(calculateMetricsIV(model, X_trainExog, X_train_endog, y_train, X_testExog, X_test_endog, y_test, modelName))
 
 MetricsDf = pd.DataFrame(allMetrics)
-
+print("All Metrics OLS and IV")
 print(MetricsDf)
 
 nIterations = 1000
 resultsList = []
 
-for i in range(nIterations):
-    sample = resample(mergedData, replace=True, n_samples=len(mergedData), random_state=i)
+def runOLSBootstrapOOB(fullData, yCol, xCols, label, random_state):
+    sample = resample(fullData, replace=True, n_samples=len(fullData), random_state=random_state)
+    oob_idx = fullData.index.difference(sample.index)
+    oob_data = fullData.loc[oob_idx]
+    if oob_data.empty:
+        return {"Model": label, "OOB RMSE": np.nan, "OOB MAE": np.nan}
+    X_train = add_constant(sample[xCols])
+    y_train = sample[yCol]
+    model = OLS(y_train, X_train).fit()
+    X_oob = add_constant(oob_data[xCols])
+    y_oob = oob_data[yCol]
+    y_pred_oob = model.predict(X_oob)
+    return {
+        "Model": label,
+        "OOB RMSE": np.sqrt(mean_squared_error(y_oob, y_pred_oob)),
+        "OOB MAE": mean_absolute_error(y_oob, y_pred_oob)
+    }
 
-    def runOLSBootstrap(df, yCol, xCols, label):
-        x = add_constant(df[xCols])
-        y = df[yCol]
-        model = OLS(y, x).fit()
-        yPred = model.predict(x)
+def runIVBootstrapOOB(fullData, yCol, exogCols, endogCols, instrCols, label, random_state):
+    sample = resample(fullData, replace=True, n_samples=len(fullData), random_state=random_state)
+    oob_idx = fullData.index.difference(sample.index)
+    oob_data = fullData.loc[oob_idx]
+    if oob_data.empty:
+        return {"Model": label, "OOB RMSE": np.nan, "OOB MAE": np.nan}
+    y_train = sample[yCol]
+    exog_train = add_constant(sample[exogCols]) if exogCols else add_constant(pd.DataFrame(index=sample.index))
+    endog_train = sample[endogCols]
+    instr_train = sample[instrCols]
+    model = IV2SLS(y_train, exog_train, endog_train, instr_train).fit()
+    y_oob = oob_data[yCol]
+    exog_oob = add_constant(oob_data[exogCols]) if exogCols else add_constant(pd.DataFrame(index=oob_data.index))
+    endog_oob = oob_data[endogCols]
+    try:
+        y_pred_oob = model.predict(exog=exog_oob, endog=endog_oob)
         return {
             "Model": label,
-            "R-squared": model.rsquared,
-            "Adj. R-squared": model.rsquared_adj,
-            "RMSE": np.sqrt(mean_squared_error(y, yPred)),
-            "MAE": mean_absolute_error(y, yPred)
+            "OOB RMSE": np.sqrt(mean_squared_error(y_oob, y_pred_oob)),
+            "OOB MAE": mean_absolute_error(y_oob, y_pred_oob)
         }
+    except:
+        return {"Model": label, "OOB RMSE": np.nan, "OOB MAE": np.nan}
 
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_19970107", ["Inflation_Rate_1997", "OutputGap_1997"], "OLS 1997 Without Lag"))
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_19970107", ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"], "OLS 1997 With Lag"))
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_20020108", ["Inflation_Rate_2002", "OutputGap_2002"], "OLS 2002 Without Lag"))
-    resultsList.append(runOLSBootstrap(sample, "FEDFUNDS_20020108", ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002"], "OLS 2002 With Lag"))
+for i in range(nIterations):
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_19970107",
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122", "OILPRICE_19970303", "UNRATE_19970110"],
+        "OLS 1997 Without Lag", i))
 
-    def runIVBootstrap(df, yCol, exogCols, endogCols, instrCols, label):
-        y = df[yCol]
-        exog = add_constant(df[exogCols]) if exogCols else add_constant(pd.DataFrame(index=df.index))
-        endog = df[endogCols]
-        instr = df[instrCols]
-        model = IV2SLS(y, exog, endog, instr).fit()
-        yPred = model.fitted_values
-        return {
-             "Model": label,
-            "R-squared": model.rsquared,
-            "Adj. R-squared": np.nan,
-            "RMSE": np.sqrt(mean_squared_error(y, yPred)),
-            "MAE": mean_absolute_error(y, yPred)
-        }
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_19970107",
+        ["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122", "OILPRICE_19970303", "UNRATE_19970110"],
+        "OLS 1997 With Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_19970107",
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_20020108",
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117", "OILPRICE_20020102", "UNRATE_20020104"],
+        "OLS 2002 Without Lag", i))
+
+    resultsList.append(runOLSBootstrapOOB(mergedData, "FEDFUNDS_20020108",
+        ["FedFunds_2002_Lag1", "Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117", "OILPRICE_20020102", "UNRATE_20020104"],
+        "OLS 2002 With Lag", i))
+
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_19970107",
         [],
-        ["Inflation_Rate_1997", "OutputGap_1997"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122", "OILPRICE_19970303", "UNRATE_19970110"],
         ["OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
-         "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3"],
-        "IV 1997 Without Lag"
-    ))
+         "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "Houses_1997_Lag1", "Houses_1997_Lag2", "Houses_1997_Lag3",
+         "Oil_Price_1997_Lag1", "Oil_Price_1997_Lag2", "Oil_Price_1997_Lag3",
+         "Unemployment_1997_Lag1", "Unemployment_1997_Lag2", "Unemployment_1997_Lag3"],
+        "IV 1997 Without Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_19970107",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_19970107",
         ["FedFunds_1997_Lag1"],
-        ["Inflation_Rate_1997", "OutputGap_1997"],
+        ["Inflation_Rate_1997", "OutputGap_1997", "HOUST_19970122", "OILPRICE_19970303", "UNRATE_19970110"],
         ["OutputGap_1997_Lag1", "OutputGap_1997_Lag2", "OutputGap_1997_Lag3",
-         "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3"],
-        "IV 1997 With Lag"
-    ))
+         "Inflation_Rate_1997_Lag1", "Inflation_Rate_1997_Lag2", "Inflation_Rate_1997_Lag3",
+         "Houses_1997_Lag1", "Oil_Price_1997_Lag1", "Unemployment_1997_Lag1"],
+        "IV 1997 With Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_20020108",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_20020108",
         [],
-        ["Inflation_Rate_2002", "OutputGap_2002"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117", "OILPRICE_20020102", "UNRATE_20020104"],
         ["OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
-         "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3"],
-        "IV 2002 Without Lag"
-    ))
+         "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "Houses_2002_Lag1", "Houses_2002_Lag2", "Houses_2002_Lag3",
+         "Oil_Price_2002_Lag1", "Oil_Price_2002_Lag2", "Oil_Price_2002_Lag3",
+         "Unemployment_2002_Lag1", "Unemployment_2002_Lag2", "Unemployment_2002_Lag3"],
+        "IV 2002 Without Lag", i))
 
-    resultsList.append(runIVBootstrap(
-        sample,
-        "FEDFUNDS_20020108",
+    resultsList.append(runIVBootstrapOOB(mergedData, "FEDFUNDS_20020108",
         ["FedFunds_2002_Lag1"],
-        ["Inflation_Rate_2002", "OutputGap_2002"],
+        ["Inflation_Rate_2002", "OutputGap_2002", "HOUST_20020117", "OILPRICE_20020102", "UNRATE_20020104"],
         ["OutputGap_2002_Lag1", "OutputGap_2002_Lag2", "OutputGap_2002_Lag3",
-         "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3"],
-        "IV 2002 With Lag"
-    ))
+         "Inflation_Rate_2002_Lag1", "Inflation_Rate_2002_Lag2", "Inflation_Rate_2002_Lag3",
+         "Houses_2002_Lag1", "Oil_Price_2002_Lag1", "Unemployment_2002_Lag1"],
+        "IV 2002 With Lag", i))
 
 bootstrapDf = pd.DataFrame(resultsList)
 bootstrapSummary = bootstrapDf.groupby("Model").agg(["mean", "std"])
