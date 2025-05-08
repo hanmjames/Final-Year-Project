@@ -12,22 +12,35 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.float_format', '{:.2f}'.format)
 
 realGDP = pd.read_csv(r"../Training_and_Testing_Data/RealGDP_1981to1996.csv")
+realGDP['observation_date'] = pd.to_datetime(realGDP['observation_date'], format='%d/%m/%Y')
+
 potGDP = pd.read_csv(r"../Training_and_Testing_Data/PotGDP_1981to1996.csv")
+potGDP['observation_date'] = pd.to_datetime(potGDP['observation_date'], format='%d/%m/%Y')
+
 inflation = pd.read_csv(r"../Training_and_Testing_Data/Inflation_1981to1996.csv")
+inflation['observation_date'] = pd.to_datetime(inflation['observation_date'], format='%d/%m/%Y')
+
 fedFunds = pd.read_csv(r"../Training_and_Testing_Data/Fedfunds_1981to1996.csv")
+fedFunds['observation_date'] = pd.to_datetime(fedFunds['observation_date'], format='%d/%m/%Y')
+
 oilPrices = pd.read_csv(r"../Training_and_Testing_Data/OilPrice_Quarterly.csv")
-unemployment_rates = pd.read_csv(r"../Training_and_Testing_Data/UnemploymentRate_Quarterly.csv")
+oilPrices['observation_date'] = pd.to_datetime(oilPrices['observation_date'], format='%d/%m/%Y')
+
+unemploymentRates = pd.read_csv(r"../Training_and_Testing_Data/UnemploymentRate_Quarterly.csv")
+unemploymentRates['observation_date'] = pd.to_datetime(unemploymentRates['observation_date'], format='%d/%m/%Y')
+
 housing = pd.read_csv(r"../Training_and_Testing_Data/Housing_Quarterly.csv")
+housing['observation_date'] = pd.to_datetime(housing['observation_date'], format='%d/%m/%Y')
 
 oilPrices = oilPrices[pd.to_datetime(oilPrices['observation_date']) >= '1970-01-01']
-unemployment_rates = unemployment_rates[pd.to_datetime(unemployment_rates['observation_date']) >= '1970-01-01']
+unemploymentRates = unemploymentRates[pd.to_datetime(unemploymentRates['observation_date']) >= '1970-01-01']
 housing = housing[pd.to_datetime(housing['observation_date']) >= '1970-01-01']
 
 mergedData = (
     realGDP.merge(potGDP, on="observation_date")
     .merge(inflation, on="observation_date")
     .merge(fedFunds, on="observation_date")
-    .merge(unemployment_rates, on="observation_date")
+    .merge(unemploymentRates, on="observation_date")
 )
 
 mergedData['observation_date'] = pd.to_datetime(mergedData['observation_date'])

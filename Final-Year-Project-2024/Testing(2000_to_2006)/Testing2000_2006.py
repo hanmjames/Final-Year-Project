@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 import joblib
+import statsmodels.api as sm
 from statsmodels.api import add_constant
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 pd.set_option('display.max_columns', None)
@@ -74,6 +74,39 @@ standardizeCols = joblib.load("../Model_Training/BaseModelScalerColumns.joblib")
 scaler = joblib.load("../Model_Training/BaseModelScaler.joblib")
 mergedTestData.dropna(subset=standardizeCols, inplace=True)
 mergedTestData[standardizeCols] = scaler.transform(mergedTestData[standardizeCols])
+
+windowSize = 8
+coeffList = []
+dateList = []
+
+for i in range(windowSize, len(mergedTestData)):
+    subData = mergedTestData.iloc[i - windowSize:i].copy()
+    y = subData["FEDFUNDS"]
+    X = add_constant(subData[["FEDFUNDS_Lag1", "Inflation_Rate", "OutputGap"]])
+    model = sm.OLS(y, X).fit()
+    coeffs = model.params
+    coeffList.append(coeffs)
+    dateList.append(mergedTestData.iloc[i]["observation_date"])
+
+coeffDf2 = pd.DataFrame(coeffList)
+coeffDf2["observation_date"] = dateList
+print(coeffDf2)
+print("###################")
+
+plt.figure(figsize=(12, 5))
+
+plt.plot(coeffDf2['observation_date'], coeffDf2['Inflation_Rate'], label='Inflation Rate Coefficient')
+plt.plot(coeffDf2['observation_date'], coeffDf2['OutputGap'], label='Output Gap Coefficient')
+
+plt.axhline(0, color='black', linestyle='--', linewidth=0.8)
+plt.title("OLS 1997 With Lagged FedFunds Coefficients (2000–2006)")
+plt.xlabel("Date")
+plt.ylabel("Coefficient Value")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+exit()
 
 olsModels = [
     (

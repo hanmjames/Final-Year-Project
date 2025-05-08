@@ -250,6 +250,37 @@ results_2002WithLaggedAll = ivModel2002AllLagged.fit()
 print("IV Regression Results for 2002 Vintage Incl. Lagged FEDFUNDS (All Quarters):")
 print(results_2002WithLaggedAll.summary)
 
+# windowSize = 20
+# coeffList = []
+# dateList = []
+#
+# for i in range(windowSize, len(mergedData)):
+#     windowData = mergedData.iloc[i - windowSize:i]
+#     y = windowData["FEDFUNDS_19970107"]
+#     X = windowData[["FedFunds_1997_Lag1", "Inflation_Rate_1997", "OutputGap_1997"]]
+#     X = add_constant(X)
+#     model = OLS(y, X).fit()
+#     coeffs = model.params
+#     coeffList.append(coeffs)
+#     dateList.append(windowData["observation_date"].iloc[-1])
+#
+# coeffDf1 = pd.DataFrame(coeffList)
+# coeffDf1["observation_date"] = dateList
+# print(coeffDf1)
+#
+# plt.figure(figsize=(12, 6))
+# for col in coeffDf1.columns:
+#     if col != 'observation_date':
+#         plt.plot(coeffDf1['observation_date'], coeffDf1[col], label=col)
+#
+# plt.title("Rolling OLS Coefficients (1997 Model with Lagged FedFunds)")
+# plt.xlabel("Date")
+# plt.ylabel("Coefficient Value")
+# plt.legend()
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
+
 results = [
     {"Vintage": "1997", "Regression Type": "IV with Lagged FEDFUNDS (1997)", "Model": results_1997WithLaggedQ1},
     {"Vintage": "1997", "Regression Type": "IV without Lagged FEDFUNDS (1997)", "Model": results_1997WithoutLaggedQ1},
